@@ -4,6 +4,7 @@ import csv
 import numpy as np
 import sys
 import math
+from scipy.ndimage import gaussian_filter
 import os, errno
 import subprocess
 import argparse
@@ -337,7 +338,7 @@ if __name__=="__main__":
 	#get box size first because some defaults depend on it:
 	## Ruizhi "to get the box size, no need to read the whole mrc file, only the first micrograph is enough
 	input_mrc=mrc.read(results.model)
-	box_size = box_size=readHeaders(results.model)['shape'][1] 
+	box_size=readHeaders(results.model)['shape'][1] 
 
 	#set defaults
 	
@@ -429,10 +430,10 @@ if __name__=="__main__":
 	###STEP AROUND Z AXIS USING PROC3D
 
 	## the following line for creating mask for 3d classificaiton is written by Ruizhi
-	mask_3dclass=make_sphere(box_size,radius,new_center)
+	mask_3dclass=make_sphere(box_size,radius,xyz_center)
 	mask_3dclass[mask_3dclass<0.5]=0.5
 	mask_3dclass[mask_3dclass>0.5]=0.
-	mask_3dclass[mask_3dclass=0.5]=1.
+	mask_3dclass[mask_3dclass==0.5]=1.
 	mrc.write(mask_3dclass,'RASTR_gauss_sphere_0_1_3dclass.mrc')
 
         while abs(angle) < 360:
@@ -440,13 +441,10 @@ if __name__=="__main__":
 		nc_array = z_rotate(xyz_center, angle, box_size)
 		new_center = [float(nc_array[0])+(box_size/2), float(nc_array[1])+(box_size/2), float(nc_array[2])+box_size/2]
 		mask_a = make_sphere(box_size, radius, new_center)
-		temp_sphere=scratch+'/gauss_sphere_'+str(abs(angle)))+'.mrc'
-
+		temp_sphere=scratch+'/gauss_sphere_'+str(abs(angle))+'.mrc'
+		mask_a=gaussian_filter(mask_a,sigma=1,truncate=5)
 		mrc.write(mask_a, temp_sphere)
-		low_pass_command='proc3d '+temp_sphere+' '+temp_sphere+' apix=1 lp='+str(results.gauss)
-		run_command(low_pass_command)
-		mask_b=mrc.read(temp_sphere)
-		final_array= np.multiply(input_mrc, mask_b)
+		final_array= np.multiply(input_mrc, mask_a)
 		mrc.write(final_array, mrc2)
 		logger1.info(mrc2)
 		models_a[mrc2]=xyz_center[0:4], angle
@@ -464,7 +462,7 @@ if __name__=="__main__":
 		mrcs_out=model.split('.')[0]+'particles'
 		particles_a[mrcs_out]=models_a[model]
 		#when done add in the --ctf and subtract command
-	i	if results.test_TF == True:
+		if results.test_TF == True:
 			relion_subtract_run = 'relion_project --i '+model+' --o '+mrcs_out+' --angpix '+angpix+' --ang '+initial_star_in
 		else:
 			relion_subtract_run = 'relion_project --i '+model+' --o '+mrcs_out+' --angpix '+angpix+' --ang '+initial_star_in+' --ctf --subtract_exp'
