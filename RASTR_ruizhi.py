@@ -328,7 +328,13 @@ def readHeaders(particlestacks):
 	headers=mrc.parseHeader(headerbytes)
 	return headers
 
-	
+def checkdirectory(name):
+	num=2
+	while os.path.isdir(name):
+		name=name+str(num)
+		num+=1
+	make_tmp(name)
+	return name	
 #Main program
 if __name__=="__main__":
 
@@ -370,13 +376,8 @@ if __name__=="__main__":
         angle_to_add = float(360)/float(n_spheres)
 	
 	#create a scratch directory
-
-	scratch = 'scratch'
-	scratch_num = 2
-        while os.path.isdir(scratch) is True:
-                scratch = 'scratch'+str(scratch_num)
-                scratch_num+=1
-        make_tmp(scratch)
+	scratch=checkdirectory('scratch')
+	
 
 	#create a log file
 	logger1,logger2,logger3,logger4=setupLogger()
@@ -393,41 +394,6 @@ if __name__=="__main__":
 	models_a = {}
 	#START AT THE SECTION CLOSEST TO EDGE
 	angle = 0
-	#CREATING MODELS FOR SUBTRACTION
-#	mask_a=make_sphere(box_size, radius, xyz_center)
-	##CREATE MODEL IF LEAVING TUBE
-#	if results.trad == None:
-#		temp_sphere=scratch+'/gauss_sphere_p000.mrc'
-#		mrc.write(mask_a, temp_sphere)
-#		low_pass_command='proc3d '+temp_sphere+' '+temp_sphere+' apix=1 lp='+str(results.gauss)
-#        	run_command(low_pass_command)
-#		mask_b=mrc.read(temp_sphere)
-#	##CREATE MODEL IF REMOVING TUBE
-#	else:
-#		mask_a=make_sphere(box_size, radius, xyz_center)
-#		cyl=make_cylinder(box_size, results.trad)
-#		flip(mask_a)
-#		bite=np.multiply(cyl, mask_a)
-#		mrc.write(bite, scratch+'/temp_mask_a.mrc')
-#		low_pass_command='proc3d '+scratch+'/temp_mask_a.mrc '+scratch+'/temp_mask_b.mrc apix=1 lp='+str(results.gauss)
-#		run_command(low_pass_command)
-#		mask_b=mrc.read(scratch+'/temp_mask_b.mrc')
-#		flip(mask_b)
-	##MASKING ON THE INPUT MODEL
-#        final_array=np.multiply(input_mrc, mask_b)
-
-        ##WRITE OUT MODEL TO DISC
-#        mrc_to_write=scratch+'/z_0_phi_000_.mrc'
-#	if results.test_TF == True:
-#		flip(final_array)
-#	mrc.write(final_array,mrc_to_write)
-#	logger1.info(mrc_to_write) 
-	##ROTATE MODEL AROUND Z TO CREATE ADDITIONAL SECTIONS
-	###ADD INITIAL MODEL TO DICTIONARY
-#	models_a[mrc_to_write] = xyz_center[0:4], angle
-	###FIND ANGLE TO STEP
-#	angle=angle+angle_to_add
-	###STEP AROUND Z AXIS USING PROC3D
 
 	## the following line for creating mask for 3d classificaiton is written by Ruizhi
 	mask_3dclass=make_sphere(box_size,radius,xyz_center)
@@ -435,22 +401,24 @@ if __name__=="__main__":
 	mask_3dclass[mask_3dclass>0.5]=0.
 	mask_3dclass[mask_3dclass==0.5]=1.
 	mrc.write(mask_3dclass,'RASTR_gauss_sphere_0_1_3dclass.mrc')
+	del mask_3dclass
 
         while abs(angle) < 360:
-		mrc2=scratch+'/z_0_phi_'+str("%03d" % int(angle))+'_.mrc'
+		subtract_model=scratch+'/z_0_phi_'+str("%03d" % int(angle))+'.mrc'
 		nc_array = z_rotate(xyz_center, angle, box_size)
 		new_center = [float(nc_array[0])+(box_size/2), float(nc_array[1])+(box_size/2), float(nc_array[2])+box_size/2]
 		mask_a = make_sphere(box_size, radius, new_center)
-		temp_sphere=scratch+'/gauss_sphere_'+str(abs(angle))+'.mrc'
 		mask_a=gaussian_filter(mask_a,sigma=1,truncate=5)
-		mrc.write(mask_a, temp_sphere)
-		final_array= np.multiply(input_mrc, mask_a)
-		mrc.write(final_array, mrc2)
-		logger1.info(mrc2)
-		models_a[mrc2]=xyz_center[0:4], angle
+		final_array= input_mrc*mask_a
+		mrc.write(final_array, subtract_model)
+		logger1.info(subtract_model)
+		models_a[subtract_model]=xyz_center[0:4], angle
 		angle=angle+angle_to_add
 	logging.info('Done making models to subtract!')
 	logging.info('')
+	del mask_a,final_array,input_mrc
+
+
 	#SUBTRACTION OF PROJECTED MODEL FROM INITIAL PARTICLES
 
 	logger2.info('Starting relion subtractions')	
@@ -459,7 +427,7 @@ if __name__=="__main__":
 	model_number = int(0)
         particles_a={}
 	for model in models_a:
-		mrcs_out=model.split('.')[0]+'particles'
+		mrcs_out=model.split('.')[0]+'_particles'
 		particles_a[mrcs_out]=models_a[model]
 		#when done add in the --ctf and subtract command
 		if results.test_TF == True:
@@ -484,6 +452,7 @@ if __name__=="__main__":
 	if results.both == True or results.center == False:
 		final_list = []
 	for particles in particles_a:
+		## the flowing line, particles has no '.' therefore no need to split. Ruizhi
 		rn_out=particles.split('.')[0]+'_masked'
 		if results.both == True or results.center == True:
 			star_out_cent = rn_out+'_cent.star'
