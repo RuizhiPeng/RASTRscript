@@ -10,10 +10,7 @@ outputstar=sys.argv[2]
 f=open(originstar,'r')
 lines=f.readlines()
 f.close()
-nlines=[]
-
-for i in range(128):
-	nlines.append(lines[i]+'\n')
+nlines=lines[0:128]
 
 g=open(outputstar,'w')
 g.writelines(nlines)

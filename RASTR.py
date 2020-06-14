@@ -4,7 +4,6 @@ import csv
 import numpy as np
 import sys
 import math
-from scipy.ndimage import gaussian_filter
 import os, errno
 import subprocess
 import argparse
@@ -279,8 +278,7 @@ def parseOptions():
 	                    help='      Size of sphere to reconstruct, pixels, default is 3/16 of box size')
 	parser.add_argument('-x','--x_start', type=int, action='store', dest='x_start',
 	                    help='      center of sphere to mask in x at phi=0, pixels, IMOD coordinates, default is 3/4 of box size')
-	### n_sphere default is change to None from 4 by Ruizhi
-	parser.add_argument('-n','--n_spheres', type=int, action='store', dest='n_spheres',
+	parser.add_argument('-n','--n_spheres', type=int, action='store', dest='n_spheres', default=4,
 	                    help='      Number of spheres to mask around axis, convenient if 360 is divisable by n_spheres, defualt is 9')
 	parser.add_argument('-t','--tube_radius', type=int, action='store', dest='trad',
 	                    help='      radius of the membrane to be subtracted, this will remove the tube out to a certain radius. Used for decorations')
@@ -321,67 +319,17 @@ def parseOptions():
 	        print 'Required arguments: --star_in <star file> --model <model file> -- angpix <angpix>; use -h or --help to see all options'
 	        sys.exit()
 	return (results)
-
-###read mrc file headers	
-def readHeaders(particlestacks):
-	f=open(particlestacks,'rb')
-	headerbytes=f.read(1024)
-	headers=mrc.parseHeader(headerbytes)
-	return headers
-
-###check if sractch directory exist and mkdir one
-def checkdirectory(name):
-	num=2
-	while os.path.isdir(name):
-		name=name+str(num)
-		num+=1
-	make_tmp(name)
-	return name	
-
-### make a mask for 3d refinement
-def make_mask(box_size,radius,xyz_center):
-	mask=make_sphere(box_size,radius,xyz_center)
-	mask[mask<0.5]=0.5
-	mask[mask>0.5]=0.
-	mask[mask==0.5]=1.
-	mrc.write(mask,'RASTR_gauss_sphere_0_1_3dclass.mrc')
-
-
-
-
-
-### make models for subtraction, avg-sphere
-def make_subtractmodels(path,avgmodel,n_sphere,boxsize):
-	azavg_model=mrc.read(avgmodel)
-	angle_step=float(360/n_sphere)
-	angle=0.
-	while angle < 360:
-		subtract_model=path+'/z_0_phi_'+str("%03d" % int(angle))+'.mrc'
-		sphere_pos=z_rotate(xyz_center, angle, box_size)
-		new_center=[float(sphere_pos[0])+(box_size/2), float(sphere_pos[1])+(box_size/2), float(sphere_pos[2])+box_size/2]
-		sphere=make_sphere(box_size,radius,new_center)
-		sphere=gaussian_filter(sphere,sigma=1,truncate=5)
-		modelarray=azavg_model*sphere
-		mrc.write(modelarray,subtract_model)
-		logger1.info(subtract_model)
-                models_a[subtract_model]=xyz_center[0:4], angle
-                angle=angle+angle_to_add
-	logging.info('Done making models to subtract!')
-        logging.info('')
-
-
-
-
+		
 #Main program
-def main():
+if __name__=="__main__":
 
 	#Input arguments
 	results=parseOptions()
 	
 	#get box size first because some defaults depend on it:
-	## Ruizhi "to get the box size, no need to read the whole mrc file, only the first micrograph is enough
+
 	input_mrc=mrc.read(results.model)
-	box_size=readHeaders(results.model)['shape'][1] 
+	box_size = int(input_mrc.shape[0])
 
 	#set defaults
 	
@@ -399,7 +347,6 @@ def main():
 	        radius = int(round((float(box_size)*3)/16))
 	else:
 	        radius = results.radius
-
 	if results.output_rootname == None:
 	        output_rootname = 'RASTR_particles'
 	else:
@@ -413,8 +360,19 @@ def main():
         angle_to_add = float(360)/float(n_spheres)
 	
 	#create a scratch directory
-	scratch=checkdirectory('scratch')
-	
+
+	scratch = 'scratch'
+	scratch_num = 2
+	if os.path.isdir(scratch) is True:
+        	while os.path.isdir(scratch) is True:
+                	if scratch_num == 2:
+                        	scratch = scratch+str(scratch_num)
+                	else:
+                        	scratch = scratch.replace((str(int(scratch_num)-1)),str(scratch_num))
+                	scratch_num+=1
+
+
+        make_tmp(scratch)
 
 	#create a log file
 	logger1,logger2,logger3,logger4=setupLogger()
@@ -431,12 +389,63 @@ def main():
 	models_a = {}
 	#START AT THE SECTION CLOSEST TO EDGE
 	angle = 0
+	#CREATING MODELS FOR SUBTRACTION
+#	mask_a=make_sphere(box_size, radius, xyz_center)
+	##CREATE MODEL IF LEAVING TUBE
+#	if results.trad == None:
+#		temp_sphere=scratch+'/gauss_sphere_p000.mrc'
+#		mrc.write(mask_a, temp_sphere)
+#		low_pass_command='proc3d '+temp_sphere+' '+temp_sphere+' apix=1 lp='+str(results.gauss)
+#        	run_command(low_pass_command)
+#		mask_b=mrc.read(temp_sphere)
+#	##CREATE MODEL IF REMOVING TUBE
+#	else:
+#		mask_a=make_sphere(box_size, radius, xyz_center)
+#		cyl=make_cylinder(box_size, results.trad)
+#		flip(mask_a)
+#		bite=np.multiply(cyl, mask_a)
+#		mrc.write(bite, scratch+'/temp_mask_a.mrc')
+#		low_pass_command='proc3d '+scratch+'/temp_mask_a.mrc '+scratch+'/temp_mask_b.mrc apix=1 lp='+str(results.gauss)
+#		run_command(low_pass_command)
+#		mask_b=mrc.read(scratch+'/temp_mask_b.mrc')
+#		flip(mask_b)
+	##MASKING ON THE INPUT MODEL
+#        final_array=np.multiply(input_mrc, mask_b)
 
-	## the following line for creating mask for 3d classificaiton is written by Ruizhi
-	make_mask(box_size,radius,xyz_center)
-
-        make_subtractmodels(scratch,results.model,n_sphere,boxsize)
-
+        ##WRITE OUT MODEL TO DISC
+#        mrc_to_write=scratch+'/z_0_phi_000_.mrc'
+#	if results.test_TF == True:
+#		flip(final_array)
+#	mrc.write(final_array,mrc_to_write)
+#	logger1.info(mrc_to_write) 
+	##ROTATE MODEL AROUND Z TO CREATE ADDITIONAL SECTIONS
+	###ADD INITIAL MODEL TO DICTIONARY
+#	models_a[mrc_to_write] = xyz_center[0:4], angle
+	###FIND ANGLE TO STEP
+#	angle=angle+angle_to_add
+	###STEP AROUND Z AXIS USING PROC3D
+        while abs(angle) < 360:
+                if len(str(int(abs(angle)))) == 3:
+			mrc2=scratch+'/z_0_phi_'+ str(int(abs(angle)))+'_.mrc'
+                elif len(str(int(abs(angle)))) == 2:
+                        mrc2=scratch+'/z_0_phi_0'+ str(int(abs(angle)))+'_.mrc'
+		elif len(str(int(abs(angle)))) == 1:
+                        mrc2=scratch+'/z_0_phi_00'+ str(int(abs(angle)))+'_.mrc'
+		nc_array = z_rotate(xyz_center, angle, box_size)
+		new_center = [float(nc_array[0])+(box_size/2), float(nc_array[1])+(box_size/2), float(nc_array[2])+box_size/2]
+		mask_a = make_sphere(box_size, radius, new_center)
+		temp_sphere=scratch+'/gauss_sphere_'+str(int(abs(angle)))+'.mrc'
+		mrc.write(mask_a, temp_sphere)
+		low_pass_command='proc3d '+temp_sphere+' '+temp_sphere+' apix=1 lp='+str(results.gauss)
+		run_command(low_pass_command)
+		mask_b=mrc.read(temp_sphere)
+		final_array= np.multiply(input_mrc, mask_b)
+		mrc.write(final_array, mrc2)
+		logger1.info(mrc2)
+		models_a[mrc2]=xyz_center[0:4], angle
+		angle=angle+angle_to_add
+	logging.info('Done making models to subtract!')
+	logging.info('')
 	#SUBTRACTION OF PROJECTED MODEL FROM INITIAL PARTICLES
 
 	logger2.info('Starting relion subtractions')	
@@ -445,7 +454,7 @@ def main():
 	model_number = int(0)
         particles_a={}
 	for model in models_a:
-		mrcs_out=model.split('.')[0]+'_particles'
+		mrcs_out=model.split('.')[0]+'particles'
 		particles_a[mrcs_out]=models_a[model]
 		#when done add in the --ctf and subtract command
 		if results.test_TF == True:
@@ -470,7 +479,6 @@ def main():
 	if results.both == True or results.center == False:
 		final_list = []
 	for particles in particles_a:
-		## the flowing line, particles has no '.' therefore no need to split. Ruizhi
 		rn_out=particles.split('.')[0]+'_masked'
 		if results.both == True or results.center == True:
 			star_out_cent = rn_out+'_cent.star'
@@ -489,10 +497,8 @@ def main():
 		mrcs_to_read=mrc.read(mrcs_in)
 		
 		#VALUES NEEDED FOR MASKING/EXTRACTION
-		### following line comment out by Ruizhi, becoz of numpy version problem on blast
-		#mean_list=np.mean(mrcs_to_read, axis=(1,2))
-		mean_list=np.mean(mrcs_to_read,axis=1)
-		mean_list=np.mean(mean_list,axis=1)
+
+		mean_list=np.mean(mrcs_to_read, axis=(1,2))
 		particle_number=int(mrcs_to_read.shape[0])
 		center_circle=z_rotate(particles_a[particles][0],360-particles_a[particles][1], box_size)
 	
@@ -568,8 +574,7 @@ def main():
 			normalize_cmd = 'e2proc2d.py '+mrcs_out+' '+rn_out+'_norm.mrcs --process=normalize'
 			logger3.info('Normalizing new stack')
 			logger3.info(normalize_cmd)
-			### the line below is commented out by Ruizhi, due to eman2 not existant on blast computer
-			#run_command(normalize_cmd)
+			run_command(normalize_cmd)
 			logger3.info('Finished normalization, replacing old stack')
 			mv_cmd = 'mv '+rn_out+'_norm.mrcs '+mrcs_out
 			os.system(mv_cmd)
@@ -581,8 +586,7 @@ def main():
 			normalize_cmd = 'e2proc2d.py '+mrcs_out_cent+' '+rn_out+'_cent_norm.mrcs --process=normalize'
 			logger3.info('Normalizing new stack')
 			logger3.info(normalize_cmd)
-			### the line below is commented out by Ruizhi, due to eman2 not existant on blast computer
-			#run_command(normalize_cmd)
+			run_command(normalize_cmd)
 			logger3.info('Finished normalization, replacing old stack')
 			mv_cmd = 'mv '+rn_out+'_cent_norm.mrcs '+mrcs_out_cent
 			os.system(mv_cmd)
@@ -711,6 +715,3 @@ def main():
 	###REMOVE SCRATCH IF STATED
 	if results.keep_scratch is False:
 		shutil.rmtree(scratch)
-
-if __name__=="__main__":
-	main()
