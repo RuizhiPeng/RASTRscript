@@ -35,7 +35,19 @@ def rmsd(list1,list2):
 	## np.minimum only take two array
 	minimum=np.minimum(difnce,abs(difnce-180))
 	difnce=np.minimum(minimum,abs(difnce-360))
-	return pow((difnce*difnce).mean(),0.5)
+
+	rmsd=pow((difnce*difnce).mean(),0.5)
+	## below lines are added specially for extract particles with psi not well aligned
+	noaligns=[]
+	count=0
+	for i in range(len(difnce)):
+		if difnce[i]>10:
+			count+=1
+			noaligns.append(i+1)
+	print noaligns
+	print count
+		
+	return rmsd
 
 ### extract parameters from .par file	
 def extractpar(filename):

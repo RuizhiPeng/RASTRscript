@@ -64,9 +64,9 @@ if __name__=="__main__":
 	f=open(outpar,'w')
 	thetas=[90,270]
 	for ptcl in ptcllst:
-		#ptcl['phi']=float(random.randint(0,360))
+		ptcl['phi']=float(random.randint(0,360))
 		random.shuffle(thetas)
-		ptcl['shx']+=10
+		#ptcl['shx']+=10
 		#ptcl['theta']=thetas[0]
 		writeParticleParamLine(ptcl,f)
 	f.close()
