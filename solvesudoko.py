@@ -64,10 +64,11 @@ def showmatrix(matrix):
 		for j in range(9):
 			if type(m[i][j])==list:
 				m[i][j]=' '
+	print ('|-----------------------|')
 	for i in range(9):
-		print (m[i][0],m[i][1],m[i][2],'|',m[i][3],m[i][4],m[i][5],'|',m[i][6],m[i][7],m[i][8])
+		print ('|',m[i][0],m[i][1],m[i][2],'|',m[i][3],m[i][4],m[i][5],'|',m[i][6],m[i][7],m[i][8],'|')
 		if i%3 ==2:
-			print ('---------------------')
+			print ('|-----------------------|')
 
 
 ### input matrix and store in 2D lists
