@@ -4,12 +4,11 @@ import copy
 
 ### check if there is unsettled number
 def unsolved(matrix):
-	for i in matrix:
-		for j in i:
-			if type(j)==list:
-				#print('get')
-				return True
-	return False
+  for i in matrix:
+    for j in i:
+      if type(j)==list:
+        return True
+  return False
 
 
 def delexist(matrix):
@@ -37,21 +36,57 @@ def delbox(matrix):
 						if type(matrix[x+z][y+k])==int and (matrix[x+z][y+k] in matrix[i][j]):
 							matrix[i][j].remove(matrix[x+z][y+k])
 	return matrix
+def listtoint(matrix):
+  for i in range(9):
+    for j in range(9):
+      if type(matrix[i][j])==list and len(matrix[i][j])==1:
+        matrix[i][j]=matrix[i][j][0]
+  return matrix
 def unique(matrix):
-	for i in range(9):
-		for j in range(9):
-			if type(matrix[i][j])==list and len(matrix[i][j])==1:
-				matrix[i][j]=matrix[i][j][0]
-
-	return matrix
+  nmatrix=copy.deepcopy(matrix)
+  for i in range(9):
+    for j in range(9):
+      if type(matrix[i][j])==list:
+        for item in matrix[i][j]:
+          exist=False
+          for z in range(9):
+            if type(matrix[i][z])==list and (item in matrix[i][z]) and z!=j:
+              exist=True
+          if not exist:
+            nmatrix[i][j]=[item]
+            #print (1)
+            continue
+          exist=False
+          for z in range(9):    
+            if type(matrix[z][j])==list and (item in matrix[z][j]) and z!=i:
+              exist=True
+          if not exist:
+            nmatrix[i][j]=[item]
+            #print (2)
+            continue
+          exist=False
+          x=int(i/3)*3
+          y=int(j/3)*3
+          for k in range(3):
+            for m in range(3):
+              if type(matrix[x+k][y+m])==list and (item in matrix[x+k][y+m]):
+                if (x+k)!=i or (y+m)!=j:
+                  exist=True
+          if not exist:
+            nmatrix[i][j]=[item]
+            #print(3)
+            continue
+  return nmatrix
 def update(matrix):
     ## check by line by lane by 3x3box
-	nmatrix=delexist(matrix)
-	nmatrix=delbox(nmatrix)
-	nmatrix=unique(nmatrix)
-	if nmatrix==matrix:
-		nmatrix=guess(nmatrix)
-	return nmatrix
+
+    nmatrix=listtoint(matrix)
+    nmatrix=delexist(nmatrix)
+    nmatrix=delbox(nmatrix)
+    nmatrix=unique(nmatrix)
+    if nmatrix==matrix:
+        nmatrix=guess(nmatrix)
+    return nmatrix
 
 def guess(matrix):
     return matrix
