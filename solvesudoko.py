@@ -10,7 +10,7 @@ def unsolved(matrix):
         return True
   return False
 
-
+### delete decided integer from undecided lists, row and lane
 def delexist(matrix):
 	for i in range(9):
 		for j in range(9):
@@ -24,7 +24,7 @@ def delexist(matrix):
 			elif type(matrix[i][j])==int:
 				continue
 	return matrix
-
+### delte decided integer from undecided lists, within a 3x3 box
 def delbox(matrix):
 	for i in range(9):
 		for j in range(9):
@@ -36,19 +36,26 @@ def delbox(matrix):
 						if type(matrix[x+z][y+k])==int and (matrix[x+z][y+k] in matrix[i][j]):
 							matrix[i][j].remove(matrix[x+z][y+k])
 	return matrix
+
+### change list that has only one element left to integer
 def listtoint(matrix):
   for i in range(9):
     for j in range(9):
       if type(matrix[i][j])==list and len(matrix[i][j])==1:
         matrix[i][j]=matrix[i][j][0]
   return matrix
+
+### medium to hard problem logic
+### if an element only exist in one list in the row, lane and box. then this element must be the value of that position
 def unique(matrix):
   nmatrix=copy.deepcopy(matrix)
   for i in range(9):
     for j in range(9):
       if type(matrix[i][j])==list:
         for item in matrix[i][j]:
+          ### initial exist=False
           exist=False
+          ### this loop is for detecting if an element exist only in this list in the row
           for z in range(9):
             if type(matrix[i][z])==list and (item in matrix[i][z]) and z!=j:
               exist=True
@@ -57,6 +64,7 @@ def unique(matrix):
             #print (1)
             continue
           exist=False
+          ### this loop is for detecting if an element exist only in this list in the lane
           for z in range(9):    
             if type(matrix[z][j])==list and (item in matrix[z][j]) and z!=i:
               exist=True
@@ -67,6 +75,7 @@ def unique(matrix):
           exist=False
           x=int(i/3)*3
           y=int(j/3)*3
+          ### this loop is for detecting if an element exist only in this list in the 3x3 box
           for k in range(3):
             for m in range(3):
               if type(matrix[x+k][y+m])==list and (item in matrix[x+k][y+m]):
@@ -77,22 +86,25 @@ def unique(matrix):
             #print(3)
             continue
   return nmatrix
-def update(matrix):
-    ## check by line by lane by 3x3box
 
+### packed logic for upgrading matrix
+def update(matrix):
+    ### check by line by lane by 3x3box
     nmatrix=listtoint(matrix)
     nmatrix=delexist(nmatrix)
     nmatrix=delbox(nmatrix)
+    ### check by if the element is unique in the row, lane, box
     nmatrix=unique(nmatrix)
     if nmatrix==matrix:
         nmatrix=guess(nmatrix)
     return nmatrix
 
+### when medium to hard logic cannot solve the problem, we have to guess a position. Not finished
 def guess(matrix):
     return matrix
 
 
-
+### show 9x9 matrix with good format.(currently print mode, GUI mode unfinished)
 def showmatrix(matrix):
 	m=copy.deepcopy(matrix)
 	for i in range(9):
@@ -106,7 +118,7 @@ def showmatrix(matrix):
 			print ('|-----------------------|')
 
 
-### input matrix and store in 2D lists
+### input matrix and store in 2D lists, currently have interactive mode and file mode, elements separated by ' ,'. unkown position input as zero
 def getmatrix():
 	matrix=[[0,0,0,0,0,0,0,0,0] for x in range(9)]
     ### judge if raw input or GUI input
