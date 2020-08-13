@@ -1,4 +1,11 @@
 #! /usr/bin/env python
+
+### RASTR related frealign par file comparing. 
+### ./xxx.py  file1 file2 -psi (-theta -phi -x -y)
+
+
+
+
 import sys
 import time
 import numpy as np

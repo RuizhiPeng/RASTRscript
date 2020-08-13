@@ -64,13 +64,13 @@ def updatefile(filename,newvalues):
 	### get parameter column position
 	paracolumn=column(filename)
 
-	### default types
-	angletype,valuetype,stringtype=False,False,False
 
 	### change per parameter that need to change
 	for paraname in newvalues:
 		value=newvalues[paraname]
-
+		### default types
+		angletype,valuetype,stringtype=False,False,False
+		
 		### identify parameter type
 		### for angle random will be (0, input) for shift random will be (-input, input)
 		### more can be added 
@@ -141,6 +141,7 @@ def main():
                 newvalues['tilt']=parse.Tilt
         if parse.Psi:
                 newvalues['psi']=parse.Psi		
+
 	#update and write
 	updatefile(filename,newvalues)
 

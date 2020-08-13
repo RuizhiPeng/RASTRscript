@@ -5,7 +5,15 @@ f=open(filename,'r')
 lines=f.readlines()
 f.close()
 
-classcount=[0,0,0]
+f=open(filename[0:9]+'_model.star','r')
+modellines=f.readlines()
+f.close()
+for line in modellines:
+	words=line.split()
+	if len(words)==2 and words[0]=='_rlnNrClasses':
+		classnumber=int(words[1])
+
+classcount=[0 for i in range(classnumber)]
 for line in lines:
         words=line.split()
         try:
@@ -15,7 +23,7 @@ for line in lines:
                         pass
 	except:
 		continue
-	if words[0]=='/gpfs/research/stagg/scratch/rp18j/dynaminN4particles/dynaminrastrn4particlesbin4.mrcs':
+	if len(words)>2:
 		classcount[int(words[column_class])-1]+=1
 
 print classcount
