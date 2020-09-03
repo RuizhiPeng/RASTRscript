@@ -354,10 +354,9 @@ if __name__=="__main__":
 
 
 	#Default values to be printed in log file	
-
-        initial_star_in = results.star_in
-        angpix = str(results.angpix)
-        angle_to_add = float(360)/float(n_spheres)
+	initial_star_in = results.star_in
+    angpix = str(results.angpix)
+    angle_to_add = float(360)/float(n_spheres)
 	
 	#create a scratch directory
 
@@ -389,40 +388,8 @@ if __name__=="__main__":
 	models_a = {}
 	#START AT THE SECTION CLOSEST TO EDGE
 	angle = 0
-	#CREATING MODELS FOR SUBTRACTION
-#	mask_a=make_sphere(box_size, radius, xyz_center)
-	##CREATE MODEL IF LEAVING TUBE
-#	if results.trad == None:
-#		temp_sphere=scratch+'/gauss_sphere_p000.mrc'
-#		mrc.write(mask_a, temp_sphere)
-#		low_pass_command='proc3d '+temp_sphere+' '+temp_sphere+' apix=1 lp='+str(results.gauss)
-#        	run_command(low_pass_command)
-#		mask_b=mrc.read(temp_sphere)
-#	##CREATE MODEL IF REMOVING TUBE
-#	else:
-#		mask_a=make_sphere(box_size, radius, xyz_center)
-#		cyl=make_cylinder(box_size, results.trad)
-#		flip(mask_a)
-#		bite=np.multiply(cyl, mask_a)
-#		mrc.write(bite, scratch+'/temp_mask_a.mrc')
-#		low_pass_command='proc3d '+scratch+'/temp_mask_a.mrc '+scratch+'/temp_mask_b.mrc apix=1 lp='+str(results.gauss)
-#		run_command(low_pass_command)
-#		mask_b=mrc.read(scratch+'/temp_mask_b.mrc')
-#		flip(mask_b)
-	##MASKING ON THE INPUT MODEL
-#        final_array=np.multiply(input_mrc, mask_b)
 
-        ##WRITE OUT MODEL TO DISC
-#        mrc_to_write=scratch+'/z_0_phi_000_.mrc'
-#	if results.test_TF == True:
-#		flip(final_array)
-#	mrc.write(final_array,mrc_to_write)
-#	logger1.info(mrc_to_write) 
-	##ROTATE MODEL AROUND Z TO CREATE ADDITIONAL SECTIONS
-	###ADD INITIAL MODEL TO DICTIONARY
-#	models_a[mrc_to_write] = xyz_center[0:4], angle
-	###FIND ANGLE TO STEP
-#	angle=angle+angle_to_add
+
 	###STEP AROUND Z AXIS USING PROC3D
         while abs(angle) < 360:
                 if len(str(int(abs(angle)))) == 3:
