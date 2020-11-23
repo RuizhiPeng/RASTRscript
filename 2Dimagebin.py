@@ -29,10 +29,10 @@ except:
 
 ### 2D image bin by 2, input image stack matrix.
 def slicebin2(vol):
-	xodd=np.arange(vol.shape[0]/2)+1
-	xeven=np.arange(vol.shape[0]/2)
-	yodd=np.arange(vol.shape[1]/2)+1
-	yeven=np.arange(vol.shape[1]/2)
+	xodd=np.arange(vol.shape[0]/2)*2+1
+	xeven=np.arange(vol.shape[0]/2)*2
+	yodd=np.arange(vol.shape[1]/2)*2+1
+	yeven=np.arange(vol.shape[1]/2)*2
 
         vol11=np.delete(vol,xeven,axis=0)
         vol11=np.delete(vol11,yeven,axis=1)
