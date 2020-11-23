@@ -304,8 +304,6 @@ def parseOptions():
 
 	parser.add_argument('-g','--gauss',type=int, default=5, dest='gauss', help='	Sigma for gaussian edge to add to sphere. Default = 5')	
 	
-	parser.add_argument('-ma','--mask',action='store',dest='mask',help='mask used for RASTR, desired space value 1',
-						default=None)
 	results = parser.parse_args()
 	
 	#make sure all the required arguments are here
@@ -350,6 +348,25 @@ def make_mask(box_size,radius,xyz_center):
 
 
 
+
+
+### make models for subtraction, avg-sphere
+def make_subtractmodels(path,avgmodel,xyz_center,radius):
+	azavg_model=mrc.read(avgmodel)
+	box_size=readHeaders(avgmodel)['shape'][1]
+	subtract_model=path+avgmodel.split('.')[0]+'000masked'+'.mrc'
+	
+	sphere=make_sphere(box_size,radius,xyz_center)
+	sphere=gaussian_filter(sphere,sigma=1,truncate=5)
+	modelarray=azavg_model*sphere
+	
+	mrc.write(modelarray,subtract_model)
+	logger1.info(subtract_model)
+        models_a[subtract_model]=xyz_center[0:4], angle
+	logging.info('Done making models to subtract!')
+        logging.info('')
+
+
 #Main program
 if __name__=="__main__":
 
@@ -369,7 +386,7 @@ if __name__=="__main__":
 	        x_start = results.x_start
 	
 	if results.n_spheres == None:
-	        n_spheres = 4
+	        n_spheres = 9
 	else:
 	        n_spheres = results.n_spheres
 	
@@ -385,9 +402,9 @@ if __name__=="__main__":
 
 	#Default values to be printed in log file	
 
-    initial_star_in = results.star_in
-    angpix = str(results.angpix)
-    angle_to_add = float(360)/float(n_spheres)
+        initial_star_in = results.star_in
+        angpix = str(results.angpix)
+        angle_to_add = float(360)/float(n_spheres)
 	
 	#create a scratch directory
 	scratch=checkdirectory('scratch')
@@ -408,11 +425,12 @@ if __name__=="__main__":
 	stars= []
 
 
-	## the following 3 lines for creating mask for 3d refine is written by Ruizhi
+	## the following line for creating mask for 3d classificaiton is written by Ruizhi
 	###independent step for future use
-	if results.mask ==None:
-		make_mask(box_size,radius,xyz_center)
+	make_mask(box_size,radius,xyz_center)
 	
+	### make masked model for subtraction, only one output
+        make_subtractmodels(scratch,results.model,xyz_center,radius)
 
 	for i in range(n_spheres):
 		rot_to_add=float(360/n_spheres)*i
