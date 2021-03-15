@@ -1,5 +1,11 @@
 #! /usr/bin/env python	
 ###change star file element to a constant
+### Ruizhi's script for change star file manually, changeable elements include _rlnMicrographName, _rlnImageName, _rlnMagnification, _rlnAngleRot, _rlnAngleTilt, _rlnAnglePsi, _rlnOriginX, _rlnOriginY
+### string type elements can only be changed to one fixed value
+### number type elements can be changed to random(r), plus a number(+), minus a number(-)
+### eg: ./changestar.py stack.star stackbin4.star -mag 10000.0
+### eg: ./changestar.py generate.star generaterandomphi.star -rot r360    (this will give phi angle a random value between 0.0-360.0
+
 
 import sys
 import argparse
@@ -14,8 +20,10 @@ def parserInput(args):
 	parser.add_argument('-rot','--anglerot',action='store',default=None,dest='Rot')
 	parser.add_argument('-tilt','--angletilt',action='store',default=None,dest='Tilt')
 	parser.add_argument('-psi','--anglepsi',action='store',default=None,dest='Psi')
+	parser.add_argument('-x','--shiftx',action='store',default=None,dest='X')
+	parser.add_argument('-y','--shifty',action='store',default=None,dest='Y')
 	return parser.parse_args(args)
-### get parameters different column position. supporting star and par file.
+### get parameters' column position. supporting star and par file.
 def column(filename):
 	if filename[-4:]=='star':
 		paracolumn={}
@@ -37,6 +45,10 @@ def column(filename):
                                         paracolumn['tilt']=int(words[1][1:])-1
                                 if words[0]=='_rlnAnglePsi':
 					paracolumn['psi']=int(words[1][1:])-1
+				if words[0]=='_rlnOriginX':
+					paracolumn['shx']=int(words[1][1:])-1
+				if words[0]=='_rlnOriginY':
+					paracolumn['shy']=int(words[1][1:])-1
 	elif filename[-3:]=='par':
 		paracolumn={}
 		paracolumn['mag']=6
@@ -52,7 +64,8 @@ def column(filename):
 
 
 ### main function for updating star file
-def updatefile(filename,newvalues):
+### input filename to change and a dictionary containing values to change
+def updatefile(filename,newvalues,outputname):
 	### change input file  with values in dictionary newvalues
 	### dic newvalues should contain all string type key and value
 
@@ -84,8 +97,8 @@ def updatefile(filename,newvalues):
 
 		for i in range(len(lines)):
 			words=lines[i].split()
-			### skip illustration line
-			if len(words)==0 or words[0]=='C' or len(words)<3:
+			### skip top lines
+			if len(words)==0 or words[0]=='C' or len(words)<5:
 				continue
 
 			if stringtype:
@@ -97,15 +110,18 @@ def updatefile(filename,newvalues):
 				continue
 			if valuetype:
 				### more can be added
+				#### r means random
 				if value[0]=='r' and angletype:
 					words[paracolumn[paraname]]=str(random.uniform(0,float(value[1:])))
 				elif value[0]=='r' and not angletype:
 					words[paracolumn[paraname]]=str(random.uniform(-1*float(value[1:]),float(value[1:])))
+				#### add angle to original
 				elif value[0]=='+':
 					newvalue=float(words[paracolumn[paraname]])+float(value[1:])
 					if angletype and newvalue>360:
 						newvalue=newvalue-360
 					words[paracolumn[paraname]]=str(newvalue)
+				#### minus angle to original
                                 elif value[0]=='-':             
 					newvalue=float(words[paracolumn[paraname]])-float(value[1:])
                                         if angletype and newvalue<-360:
@@ -117,8 +133,7 @@ def updatefile(filename,newvalues):
 				continue
 
 	### write updated file
-	newname=filename.split('.')[0]+'_updated.'+filename.split('.')[1]
-	f=open(newname,'w')
+	f=open(outputname,'w')
 	f.writelines(lines)
 	f.close
 
@@ -126,8 +141,9 @@ def main():
 	argv=sys.argv
 	#get file name
 	filename=argv[1]
+	outfile=argv[2]
 	#get parse value(what to update
-	parse=parserInput(argv[2:])
+	parse=parserInput(argv[3:])
 	newvalues={}
         if parse.micrograph:
                 newvalues['mic']=parse.micrograph
@@ -141,9 +157,12 @@ def main():
                 newvalues['tilt']=parse.Tilt
         if parse.Psi:
                 newvalues['psi']=parse.Psi		
-
+	if parse.X:
+		newvalues['shx']=parse.X
+	if parse.Y:
+		newvalues['shy']=parse.Y
 	#update and write
-	updatefile(filename,newvalues)
+	updatefile(filename,newvalues,outfile)
 
 if __name__ == '__main__':
 	main()

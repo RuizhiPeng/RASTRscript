@@ -50,7 +50,7 @@ if __name__ == '__main__':
 	### initialize headers
 	headerdict=mrc.readHeaderFromFile(inv)
 
-	print headerdict
+	#print headerdict
 	totalshape=headerdict['shape']
 	boxsize=totalshape[1]
 	### check if image stacks can be binned
@@ -76,7 +76,7 @@ if __name__ == '__main__':
 		p.start()
 		processes.append(p)
 
-		print start, end
+		#print start, end
 		start=end
 	### wait until all processes finish
 	for p in processes:
