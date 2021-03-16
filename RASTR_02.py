@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 #### script for RASTR by Ruizi
 #### this script takes a premade mask 
-#### a typical run command: ./RASTR_02.py --star_in run_it005_data.star  --model run_it005_class001azavg.mrc  --angpix 2.02  -k -o rootname -ma spheremask.mrc  -al 0,90,180,270
+#### a typical run command: ./RASTR_02.py --star_in run_it005_data.star  --model run_it005_class001azavg.mrc  --angpix 2.02  -k -o rootname -ma spheremask.mrc  -al 0,90,180,270  --pad 3
 
 import csv
 import numpy as np
@@ -10,13 +10,9 @@ import math
 import os, errno
 import subprocess
 import argparse
-import fileinput
-import shutil
 import time
 import logging
 import copy
-from pyami import imagefun
-from pyami import convolver
 from pyami import mrc
 from scipy.ndimage import rotate,shift,gaussian_filter
 from multiprocessing import Process
@@ -65,11 +61,11 @@ def volumeprojection(volume,rot=0,tilt=0,psi=0,x=0,y=0,order=0):
 #### optimization of maskprojection function is not finished!!!!!!!!!!!!!!
 def maskprojection(volume,rot=0,tilt=0,psi=0,x=0,y=0,order=0,sigma=0):
 	slice_mask=volumeprojection(volume,rot,tilt,psi,x,y,order)
-#	slice_mask[slice_mask<0.2]=0.0
-#	slice_mask[slice_mask>=0.2]=1.0
-	slice_mask=gaussian_filter(slice_mask,5)
-	slice_mask[slice_mask<0]=0.0
-	slice_mask[slice_mask>1]=1.0
+	slice_mask[slice_mask<8]=0.0
+	slice_mask[slice_mask>=8]=1.0
+	#slice_mask=gaussian_filter(slice_mask,5)
+	#slice_mask[slice_mask<0]=0.0
+	#slice_mask[slice_mask>1]=1.0
 	return slice_mask
 
 ### parse the top part of star file, return a dictionary with different column and number. eg paracolumn['rot']=8, then the 9th value in a row represent rot angle.
