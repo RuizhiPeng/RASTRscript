@@ -27,22 +27,45 @@ def rmsd_slow(list1,list2):
 	rmsdvalue='none'
 	if len(list1)==len(list2):
 		for i in range(len(list1)):
-			dif=min(pow((list1[i]-list2[i]),2),pow((list1[i]-list2[i]+180),2),pow((list1[i]-list2[i]-180),2))
+			dif=min(pow((list1[i]-list2[i]),2),pow((list1[i]-list2[i]+180),2),pow((list1[i]-list2[i]-180),2),pow((list1[i]-list2[i]+360),2),pow((list1[i]-list2[i]-360),2))
 			tempsum+=dif
 			n+=1
 		rmsdvalue=pow(tempsum/n,0.5)
 	return rmsdvalue
-
+def within180(array):
+	for i in range(len(array)):
+		while array[i]>180:
+			array[i]-=180
+	for i in range(len(array)):
+		while array[i]>90:
+			array[i]=180-array[i]
+	return array
+def rmsd_theta(list1,list2):
+	l1=np.absolute(np.array(list1))
+	l1=within180(l1)
+	l2=np.absolute(np.array(list2))
+	l2=within180(l2)
+	count=0
+	for i in range(len(l1)):
+		if l1[i]<60 or l2[i]<60 or abs(l1[i]-l2[i])>20:
+			print "%9.5f   %9.5f  %9.5f" %(l1[i] ,l2[i], abs(l1[i]-l2[i])),  "image: ", i+1
+		if l1[i]<60 or l2[i]<60:
+			count+=1
+	print count
+	difnce=np.absolute(l1-l2)
+	minimum=np.minimum(difnce,np.absolute(difnce-180))
+	return pow((minimum*minimum).mean(),0.5)
 ### rmsd measurement method2 using np array method, much quicker
 def rmsd(list1,list2):
 	l1=np.array(list1)
 	l2=np.array(list2)
 	difnce=l1-l2
-	difnce=abs(difnce)
+	difnce=np.absolute(difnce)
 	## np.minimum only take two array
-	minimum=np.minimum(difnce,abs(difnce-180))
-	difnce=np.minimum(minimum,abs(difnce-360))
-	return pow((difnce*difnce).mean(),0.5)
+	minimum=np.minimum(difnce,np.absolute(difnce-180))
+	minimum=np.minimum(minimum,np.absolute(difnce-360))
+	minimum=np.minimum(minimum,np.absolute(difnce-540))
+	return pow((minimum*minimum).mean(),0.5)
 
 ### extract parameters from .par file	
 def extractpar(filename):
@@ -102,7 +125,7 @@ def main():
                 psirmsd=rmsd(values_1['psi'],values_2['psi'])
                 print "psi rmsd: ", psirmsd	
 	if parse.theta:
-                thetarmsd=rmsd(values_1['theta'],values_2['theta'])
+                thetarmsd=rmsd_theta(values_1['theta'],values_2['theta'])
                 print "theta rmsd: ", thetarmsd
 	if parse.x:
                 shxrmsd=rmsd(values_1['shx'],values_2['shx'])

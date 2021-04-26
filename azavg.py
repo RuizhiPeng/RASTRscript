@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+### usage: ./azavg.py inputfile
+
 import numpy
 from pyami import mrc
 from pyami import imagefun
@@ -44,8 +46,8 @@ def radialAverage(data,center):
  
 
 invol=sys.argv[1]
-outvol=sys.argv[2]
-parse=parse(sys.argv[3:])
+outvol=invol[:-4]+'azavg.mrc'
+parse=parse(sys.argv[2:])
 
 
 vol=mrc.read(invol)

@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+### usage: ./randomphi.py inputfile
+### inputfile should be .par file
+
 import os
 import sys
 import random
@@ -59,7 +62,7 @@ def writeParticleParamLine(particleparams, fileobject):
 
 if __name__=="__main__":
 	inpar=sys.argv[1]
-	outpar=sys.argv[2]
+	outpar=inpar[:-4]+'randomphi.par'
 	ptcllst=parseFrealignXParamFile(inpar)
 	f=open(outpar,'w')
 	thetas=[90,270]
