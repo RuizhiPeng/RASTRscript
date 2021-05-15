@@ -50,13 +50,13 @@ def initial(files):
 def show(itnumber,res=None,percent=None):
 	for i in res:
 		pyplot.plot(range(itnumber),res[i])
-	pyplot.legend([i for i in res])
+	pyplot.legend([i for i in res],loc='upper left')
 	pyplot.xlabel('iteration')
 	pyplot.ylabel('resolution')
 	pyplot.show()
 	for i in res:
 		pyplot.plot(range(itnumber),percent[i])
-	pyplot.legend([i for i in res])
+	pyplot.legend([i for i in res],loc='upper left')
 	pyplot.xlabel('iteration')
 	pyplot.ylabel('distribution')
 	pyplot.show()

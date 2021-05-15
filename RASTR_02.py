@@ -14,6 +14,7 @@ import time
 import logging
 import copy
 from pyami import mrc
+from pyami import convolver
 from scipy.ndimage import rotate,shift,gaussian_filter
 from multiprocessing import Process
 ##Functions
@@ -207,6 +208,7 @@ def mask2d(angle):
 			maskproj=maskprojection(maskvolume,rot,tilt,psi,x,y,2,3)
 			for j in range(binrepeat):
 				maskproj=unbin_2d(maskproj)
+			maskproj=convolver.Convolver().convolve(maskproj,convolver.gaussian_kernel(5))
 			maskedslice=maskproj*singleslice
 			mrc.appendArray(maskedslice,outputobj)
 	outputobj.close()
