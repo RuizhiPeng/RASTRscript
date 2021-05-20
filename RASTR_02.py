@@ -172,6 +172,47 @@ def setupLogger():
 
 	return logger1, logger2, logger3, logger4
 
+
+def relionmask(angle):
+	logger3.info('starting extraction for angle: '+ str(angle))
+	logger3.info('projecting masks')
+	maskproj_run='relion_project --i '+whitemasksbin[angle]+'  --o '+maskprojection[angle]+'  --angpix '+angpix+' --ang '+initial_star_in+' --pad 3'
+	run_command(maskproj_run)
+	logger3.info('done projection masks for angle: '+str(angle))
+
+	mrcsfileobj=open(mrcs_subtracted[angle]+'.mrcs','rb')
+	masksfileobj=open(maskprojection[angle]+'.mrcs','rb')
+	
+	maskheaderbytes=masksfileobj.read(1024)
+	maskheaderdict=mrc.parseHeader(maskheaderbytes)
+
+	newfile=mrcs_masked[angle]
+	outputobj=open(newfile,'wb')
+	### writing the same header
+	outputobj.write(mrc.makeHeaderData(headerdict))
+
+	f=open(initial_star_in,'r')
+	lines=f.readlines()
+	f.close()
+	for line in lines:
+		words=line.split()
+		if len(words)>5:
+			i=int(words[paracolumn['image']].split('@')[0])-1
+
+			singleslice=mrc.readDataFromFile(mrcsfileobj,headerdict,zslice=i)
+			maskslice=mrc.readDataFromFile(masksfileobj,maskheaderdict,zslice=i)
+
+			maskslice[maskslice<=8]=0.0
+			maskslice[maskslice>8]=1.0
+			maskslice=unbin_2d(maskslice)
+			maskslice=convolver.Convolver().convolve(maskslice,convolver.gaussian_kernel(5))
+
+			maskedslice=maskslice*singleslice
+			mrc.appendArray(maskedslice,outputobj)
+	outputobj.close()
+	logger3.info('done extraction for angle: '+str(angle))
+
+
 ### main function for masking mrcs.
 def mask2d(angle):
 	logger3.info('starting extraction for angle: '+str(angle))
@@ -296,6 +337,8 @@ if __name__=="__main__":
 	subtractionmodels={}
 	blackmasks={}
 	whitemasks={}
+	whitemasksbin={}
+	maskprojection={}
 	mrcs_subtracted={}
 	mrcs_masked={}
 
@@ -339,8 +382,9 @@ if __name__=="__main__":
 		subtractionmodels[angle]=subtractionfile
 		whitemasks[angle]=w_maskfile
 		blackmasks[angle]=b_maskfile
+		whitemasksbin[angle]=scratch+'/whitemask'+str(angle)+'bin2.mrc'
 
-		whitemaskvolume=volumerotation(whitemask,angle,0,0)
+		whitemaskvolume=volumerotation(whitemask,angle,0,0,order=5)
 		whitemaskvolume=gaussian_filter(whitemaskvolume,sigma=3)
 		whitemaskvolume[whitemaskvolume>1]=1.0
 		whitemaskvolume[whitemaskvolume<0]=0.0
@@ -348,6 +392,10 @@ if __name__=="__main__":
 
 		mrc.write(whitemaskvolume,w_maskfile)
 		mrc.write(blackmaskvolume,b_maskfile)
+
+		whitemaskvolume_bin2=bin_3d(whitemaskvolume)
+		mrc.write(whitemaskvolume_bin2,whitemasksbin[angle])
+
 		subtractionvolume=blackmaskvolume*input_model
 		mrc.write(subtractionvolume,subtractionfile)
 		logger1.info(subtractionfile)
@@ -383,14 +431,16 @@ if __name__=="__main__":
 	headerdict=mrc.parseHeader(headerbytes)
 
 	boxsize=headerdict['shape'][1]
+
 	for angle in angles:
-		p=Process(target=mask2d,args=(angle,))
+		maskprojection[angle]=scratch+'/maskprojection_'+str(angle)
+		mrcs_masked[angle]=mrcs_subtracted[angle]+'_masked.mrcs'
+	for angle in angles:
+		p=Process(target=relionmask,args=(angle,))
 		p.start()
 		processes.append(p)
 	for p in processes:
 		p.join()
-	for angle in angles:
-		mrcs_masked[angle]=mrcs_subtracted[angle]+'_masked.mrcs'
 	logging.info('Done with masking')
 	
 
