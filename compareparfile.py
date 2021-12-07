@@ -55,6 +55,16 @@ def rmsd_theta(list1,list2):
 	difnce=np.absolute(l1-l2)
 	minimum=np.minimum(difnce,np.absolute(difnce-180))
 	return pow((minimum*minimum).mean(),0.5)
+
+def rmsd_psi(list1,list2):
+    l1=np.absolute(np.array(list1))
+    l1=within180(l1)
+    l2=np.absolute(np.array(list2))
+    l2=within180(l2)
+    difnce=np.absolute(l1-l2)
+    minimum=np.minimum(difnce,np.absolute(difnce-180))
+    return pow((minimum*minimum).mean(),0.5)
+
 ### rmsd measurement method2 using np array method, much quicker
 def rmsd(list1,list2):
 	l1=np.array(list1)
@@ -122,7 +132,7 @@ def main():
 		phirmsd=rmsd(values_1['phi'],values_2['phi'])
 		print "phi rmsd: ", phirmsd
 	if parse.psi:
-                psirmsd=rmsd(values_1['psi'],values_2['psi'])
+                psirmsd=rmsd_psi(values_1['psi'],values_2['psi'])
                 print "psi rmsd: ", psirmsd	
 	if parse.theta:
                 thetarmsd=rmsd_theta(values_1['theta'],values_2['theta'])

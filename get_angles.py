@@ -26,7 +26,11 @@ def main():
     for i in range(len(lines)):
         words=lines[i].split()
         if words[0]!='C':
+<<<<<<< HEAD
             words[1]=str(float(angle_list[j])*-1)
+=======
+            words[1]=angle_list[j]
+>>>>>>> f47c12beb929e641f13d0f106385aea4848b82b9
             j+=1
             words[0]=int(words[0])
             words[7]=int(words[7])
