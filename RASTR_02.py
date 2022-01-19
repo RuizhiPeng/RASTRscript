@@ -60,7 +60,7 @@ def volumeprojection(volume,rot=0,tilt=0,psi=0,x=0,y=0,order=0):
 	return slice_prj
 ### projection of a mask, max 1, min 0
 #### optimization of maskprojection function is not finished!!!!!!!!!!!!!!
-def maskprojection(volume,rot=0,tilt=0,psi=0,x=0,y=0,order=0,sigma=0):
+def mask_projection(volume,rot=0,tilt=0,psi=0,x=0,y=0,order=0,sigma=0):
 	slice_mask=volumeprojection(volume,rot,tilt,psi,x,y,order)
 	slice_mask[slice_mask<8]=0.0
 	slice_mask[slice_mask>=8]=1.0
@@ -71,41 +71,45 @@ def maskprojection(volume,rot=0,tilt=0,psi=0,x=0,y=0,order=0,sigma=0):
 
 ### parse the top part of star file, return a dictionary with different column and number. eg paracolumn['rot']=8, then the 9th value in a row represent rot angle.
 def column(filename):
-        if filename[-4:]=='star':
-                paracolumn={}
-                fobj=open(filename,'r')
-                lines=fobj.readlines()
-                fobj.close()
-                for line in lines:
-                        words=line.split()
-                        if len(words)==2:
-                                if words[0]=='_rlnMicrographName':
-                                        paracolumn['mic']=int(words[1][1:])-1
-                                if words[0]=='_rlnImageName':
-                                        paracolumn['image']=int(words[1][1:])-1
-                                if words[0]=='_rlnMagnification':
-                                        paracolumn['mag']=int(words[1][1:])-1
-                                if words[0]=='_rlnAngleRot':
-                                        paracolumn['rot']=int(words[1][1:])-1
-                                if words[0]=='_rlnAngleTilt':
-                                        paracolumn['tilt']=int(words[1][1:])-1
-                                if words[0]=='_rlnAnglePsi':
-                                        paracolumn['psi']=int(words[1][1:])-1
-                                if words[0]=='_rlnOriginX':
-                                        paracolumn['shx']=int(words[1][1:])-1
-                                if words[0]=='_rlnOriginY':
-                                        paracolumn['shy']=int(words[1][1:])-1
-        elif filename[-3:]=='par':
-                paracolumn={}
-                paracolumn['mag']=6
-                paracolumn['psi']=1
-                paracolumn['tilt']=2
-                paracolumn['rot']=3
-                paracolumn['shx']=4
-                paracolumn['shy']=5
-        else:
-                print "unknown file type"
-        return paracolumn
+	if filename[-4:]=='star':
+		paracolumn={}
+		fobj=open(filename,'r')
+		lines=fobj.readlines()
+		fobj.close()
+		datastart=False
+		for line in lines:
+			words=line.split()
+			if line=='data_particles\n' or line=='data_\n':
+				datastart=True
+			if len(words)==2 and datastart: 
+				if words[0]=='_rlnMicrographName':
+					paracolumn['mic']=int(words[1][1:])-1
+				if words[0]=='_rlnImageName':
+					paracolumn['image']=int(words[1][1:])-1
+				if words[0]=='_rlnMagnification':
+					paracolumn['mag']=int(words[1][1:])-1
+				if words[0]=='_rlnAngleRot':
+					paracolumn['rot']=int(words[1][1:])-1
+				if words[0]=='_rlnAngleTilt':
+					paracolumn['tilt']=int(words[1][1:])-1
+				if words[0]=='_rlnAnglePsi':
+					paracolumn['psi']=int(words[1][1:])-1
+				if words[0]=='_rlnOriginX':
+					paracolumn['shx']=int(words[1][1:])-1
+				if words[0]=='_rlnOriginY':
+					paracolumn['shy']=int(words[1][1:])-1
+### this is copied from other scirpt for modify meta data, par may not be needed here.
+	elif filename[-3:]=='par':
+		paracolumn={}
+		paracolumn['mag']=6
+		paracolumn['psi']=1
+		paracolumn['tilt']=2
+		paracolumn['rot']=3
+		paracolumn['shx']=4
+		paracolumn['shy']=5
+	else:
+		print "unknown file type"
+	return paracolumn
 
 ### funcition for subtration, utilizing relion_project --subtract_exp
 ### mrcs_subtracted is a global dictionary in main, angle is its key
@@ -196,7 +200,7 @@ def relionmask(angle):
 	f.close()
 	for line in lines:
 		words=line.split()
-		if len(words)>5:
+		if len(words)>10:
 			i=int(words[paracolumn['image']].split('@')[0])-1
 
 			singleslice=mrc.readDataFromFile(mrcsfileobj,headerdict,zslice=i)
@@ -209,6 +213,8 @@ def relionmask(angle):
 
 			maskedslice=maskslice*singleslice
 			mrc.appendArray(maskedslice,outputobj)
+	mrcsfileobj.close()
+	masksfileobj.close()
 	outputobj.close()
 	logger3.info('done extraction for angle: '+str(angle))
 
@@ -246,7 +252,7 @@ def mask2d(angle):
 			y=float(words[paracolumn['shy']])/scale
 			i=int(words[paracolumn['image']].split('@')[0])-1
 			singleslice=mrc.readDataFromFile(mrcsfileobj,headerdict,zslice=i)
-			maskproj=maskprojection(maskvolume,rot,tilt,psi,x,y,2,3)
+			maskproj=mask_projection(maskvolume,rot,tilt,psi,x,y,2,3)
 			for j in range(binrepeat):
 				maskproj=unbin_2d(maskproj)
 			maskproj=convolver.Convolver().convolve(maskproj,convolver.gaussian_kernel(5))
@@ -300,17 +306,17 @@ def parseOptions():
 	#make sure all the required arguments are here
 
 	if results.star_in == None:
-	        print 'Required arguments: --star_in <star file> --model <model file> -- angpix <angpix>; use -h or --help to see all options'
-	        sys.exit()
+		print 'Required arguments: --star_in <star file> --model <model file> -- angpix <angpix>; use -h or --help to see all options'
+		sys.exit()
 	
 	if results.model == None:
-	        print 'Required arguments: --star_in <star file> --model <model file> -- angpix <angpix>; use -h or --help to see all options'
-	        sys.exit()
+		print 'Required arguments: --star_in <star file> --model <model file> -- angpix <angpix>; use -h or --help to see all options'
+		sys.exit()
 	
 	
 	if results.angpix == None:
-	        print 'Required arguments: --star_in <star file> --model <model file> -- angpix <angpix>; use -h or --help to see all options'
-	        sys.exit()
+		print 'Required arguments: --star_in <star file> --model <model file> -- angpix <angpix>; use -h or --help to see all options'
+		sys.exit()
 	return (results)
 		
 #Main program
@@ -450,26 +456,45 @@ if __name__=="__main__":
 	lines=firstanglestar.readlines()
 	firstanglestar.close()
 	### this loop for writing header parts
+
+
+	opticstart=False
+	particlesstart=False
 	for line in lines:
 		words=line.split()
-		if len(words)<=2:
+		if line=='data_optics\n':
+			opticstart=True
+		if line=='data_particles\n':
+			particlesstart=True
+	#### when in optics line, write them directly into new star file
+		if opticstart and not particlesstart:
+			outputstar.write(line)
+	### when in particle column part, write column part
+		elif particlesstart and len(words)<=2:
 			outputstar.write(line)
 	### this loop for writing data lines
 	for angle in angles:
 		fileobj=open(mrcs_subtracted[angle]+'.star','r')
 		lines=fileobj.readlines()
 		fileobj.close()
+		opticstart=False
+		particlesstart=False
 		for line in lines:
 			words=line.split()
-			if len(words)>4:
-				#print words
+			if line=='data_optics\n':
+				opticstart=True
+			if line=='data_particles\n':
+				particlesstart=True
+			### skip optic part and particle column part, write only data lines
+			if opticstart and particlesstart and len(words)>2:
+			#print words
 				words[paracolumn['rot']]=str((float(words[paracolumn['rot']])+angle)%360.0)
 				words[paracolumn['image']]=words[paracolumn['image']][:-5]+'_masked.mrcs'
 				newline=' '.join(words)+'\n'
 				outputstar.write(newline)	
 	outputstar.close()
 	### join stacks together
-	relion_preprocess_run='relion_preprocess --operate_on tmp.star  --operate_out '+output_rootname
+	relion_preprocess_run='relion_stack_create --i tmp.star  --o '+output_rootname
 	run_command(relion_preprocess_run)
 
 

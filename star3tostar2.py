@@ -2,7 +2,7 @@
 
 
 #### this script is for transforming relion3 star file format to relion2 star file format. old cistem or relion cannot take relion3 star format
-
+#### usage ./star3tostar2.py star3filename star2filename
 import sys
 
 

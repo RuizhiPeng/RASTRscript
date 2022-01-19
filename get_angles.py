@@ -26,18 +26,14 @@ def main():
     for i in range(len(lines)):
         words=lines[i].split()
         if words[0]!='C':
-<<<<<<< HEAD
             words[1]=str(float(angle_list[j])*-1)
-=======
-            words[1]=angle_list[j]
->>>>>>> f47c12beb929e641f13d0f106385aea4848b82b9
             j+=1
             words[0]=int(words[0])
             words[7]=int(words[7])
             for i in range(len(words)):
                 if type(words[i])!='int':
                     words[i]=float(words[i])
-            newline='%7d %7.2f %7.2f %7.2f   %7.2f   %7.2f %7d %5d %8.1f %8.1f %7.2f %7.2f %7.2f %10d %10.4f %7.2f %7.2f\n' %(words[0],words[1],words[2],words[3],words[4],words[5],words[6],words[7],words[8],words[9],words[10],words[11],words[12],words[13],words[14],words[15],words[16])
+            newline='%7d %7.2f %7.2f %7.2f   %7.2f   %7.2f %7d %5d %8.1f %8.1f %7.2f %7.2f %7.2f %9d %10.4f %7.2f %7.2f\n' %(words[0],words[1],words[2],words[3],words[4],words[5],words[6],words[7],words[8],words[9],words[10],words[11],words[12],words[13],words[14],words[15],words[16])
         else:
             newline=lines[i]
         newlines.append(newline)

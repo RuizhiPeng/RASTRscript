@@ -13,13 +13,13 @@ import argparse
 
 ### get parse to figure out what parameters to be compared
 def parserInput(args):
-        parser=argparse.ArgumentParser(description='what column to change')
-        parser.add_argument('-phi','--anglephi',action='store_true',default=False,dest='phi')
-        parser.add_argument('-theta','--angletheta',action='store_true',default=False,dest='theta')
-        parser.add_argument('-psi','--anglepsi',action='store_true',default=False,dest='psi')
+	parser=argparse.ArgumentParser(description='what column to change')
+	parser.add_argument('-phi','--anglephi',action='store_true',default=False,dest='phi')
+	parser.add_argument('-theta','--angletheta',action='store_true',default=False,dest='theta')
+	parser.add_argument('-psi','--anglepsi',action='store_true',default=False,dest='psi')
 	parser.add_argument('-x','--shx',action='store_true',default=False,dest='x')
 	parser.add_argument('-y','--shy',action='store_true',default=False,dest='y')
-        return parser.parse_args(args)
+	return parser.parse_args(args)
 ### rmsd measurement method1, stupiest method
 def rmsd_slow(list1,list2):
 	n=0
@@ -57,13 +57,26 @@ def rmsd_theta(list1,list2):
 	return pow((minimum*minimum).mean(),0.5)
 
 def rmsd_psi(list1,list2):
-    l1=np.absolute(np.array(list1))
-    l1=within180(l1)
-    l2=np.absolute(np.array(list2))
-    l2=within180(l2)
-    difnce=np.absolute(l1-l2)
-    minimum=np.minimum(difnce,np.absolute(difnce-180))
-    return pow((minimum*minimum).mean(),0.5)
+	l1=np.absolute(np.array(list1))
+	l1=within180(l1)
+	l2=np.absolute(np.array(list2))
+	l2=within180(l2)
+	if len(l1)!=len(l2):
+		print ('inconsistent number of particles in two files!')
+		minlength=min(len(l1),len(l2))
+		if len(l1)>len(l2):
+			l1=l1[:minlength]
+		else:
+			l2=l2[:minlength]
+	difnce=np.absolute(l1-l2)
+	minimum=np.minimum(difnce,np.absolute(difnce-180))
+	j=0
+	for i in range(len(l1)):
+		if minimum[i]>10:
+			j+=1
+			print (i,minimum[i])
+	print ('total: ', j)
+	return pow((minimum*minimum).mean(),0.5)
 
 ### rmsd measurement method2 using np array method, much quicker
 def rmsd(list1,list2):
@@ -99,13 +112,13 @@ def extractpar(filename):
                 shy=words[5]
 		try:
 		### change below line, do not change above
-		    psilist.append(float(psi))
-		    philist.append(float(phi))
-		    thetalist.append(float(theta))
-		    shxlist.append(float(shx))
-		    shylist.append(float(shy))
+			psilist.append(float(psi))
+			philist.append(float(phi))
+			thetalist.append(float(theta))
+			shxlist.append(float(shx))
+			shylist.append(float(shy))
 		except:
-		    continue
+			continue
 	value['phi']=philist
 	value['psi']=psilist
 	value['theta']=thetalist
@@ -132,16 +145,16 @@ def main():
 		phirmsd=rmsd(values_1['phi'],values_2['phi'])
 		print "phi rmsd: ", phirmsd
 	if parse.psi:
-                psirmsd=rmsd_psi(values_1['psi'],values_2['psi'])
-                print "psi rmsd: ", psirmsd	
+		psirmsd=rmsd_psi(values_1['psi'],values_2['psi'])
+		print "psi rmsd: ", psirmsd	
 	if parse.theta:
-                thetarmsd=rmsd_theta(values_1['theta'],values_2['theta'])
-                print "theta rmsd: ", thetarmsd
+		thetarmsd=rmsd_theta(values_1['theta'],values_2['theta'])
+		print "theta rmsd: ", thetarmsd
 	if parse.x:
-                shxrmsd=rmsd(values_1['shx'],values_2['shx'])
-                print "shx rmsd: ", shxrmsd
+		shxrmsd=rmsd(values_1['shx'],values_2['shx'])
+		print "shx rmsd: ", shxrmsd
 	if parse.y:
-                shyrmsd=rmsd(values_1['shy'],values_2['shy'])
+		shyrmsd=rmsd(values_1['shy'],values_2['shy'])
 		print "shy rmsd: ", shyrmsd 
 	
 if __name__=="__main__":

@@ -12,11 +12,11 @@ def parseFrealignXParamFile(paramfile):
 	parse a typical FREALIGN X parameter file 
 	"""
 	if not os.path.isfile(paramfile):
-		print "Parameter file does not exist: %s"%(paramfile)
+		print ("Parameter file does not exist: %s"%(paramfile))
 
 	f = open(paramfile, "r")
 	parttree = []
-	print "Processing parameter file: %s"%(paramfile)
+	print ("Processing parameter file: %s"%(paramfile))
 	for line in f:
 		sline = line.strip()
 		if sline[0] == "C":
@@ -47,10 +47,10 @@ def parseFrealignXParamFile(paramfile):
 		parttree.append(partdict)
 	f.close()
 	if len(parttree) < 2:
-		print "No particles found in parameter file %s"%(paramfile)
+		print ("No particles found in parameter file %s"%(paramfile))
 
 
-	print "Processed %d particles"%(len(parttree))
+	print ("Processed %d particles"%(len(parttree)))
 	return parttree
 	
 def writeParticleParamLine(particleparams, fileobject):
@@ -61,15 +61,16 @@ def writeParticleParamLine(particleparams, fileobject):
 
 
 if __name__=="__main__":
-	inpar=sys.argv[1]
-	outpar=inpar[:-4]+'randomphi.par'
-	ptcllst=parseFrealignXParamFile(inpar)
-	f=open(outpar,'w')
-	thetas=[90,270]
-	for ptcl in ptcllst:
-		ptcl['phi']=float(random.randint(0,360))
-		random.shuffle(thetas)
-		#ptcl['shx']+=10
-		#ptcl['theta']=thetas[0]
-		writeParticleParamLine(ptcl,f)
-	f.close()
+        inpar=sys.argv[1]
+        outpar=inpar[:-4]+'randomphi.par'
+        ptcllst=parseFrealignXParamFile(inpar)
+        f=open(outpar,'w')
+        thetas=[90,270]
+        for ptcl in ptcllst:
+                ptcl['phi']=float(random.randint(0,360))
+                random.shuffle(thetas)
+                #ptcl['shx']+=10
+                if ptcl['theta']!=90 and ptcl['theta']!=270:
+                        ptcl['theta']=thetas[0]
+                writeParticleParamLine(ptcl,f)
+        f.close()

@@ -647,7 +647,7 @@ if __name__=="__main__":
 			logger4.info('Stack '+str(star_number)+' of '+str(len(final_list)))
 		starout.close()
 
-		relion_preprocess_run='relion_preprocess --operate_on '+scratch+'/tmp_particles.star --operate_out '+output_rootname
+		relion_preprocess_run='relion_stack_create --i '+scratch+'/tmp_particles.star --o '+output_rootname
 		logger4.info('Running relion_preprocess job: '+relion_preprocess_run)
 		run_command(relion_preprocess_run)
 		os.system('mv '+output_rootname+'.mrcs.mrcs '+output_rootname+'.mrcs')
