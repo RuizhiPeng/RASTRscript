@@ -3,6 +3,22 @@ from pyami import mrc
 import numpy as np
 import math
 from scipy.ndimage import gaussian_filter
+
+def cylinder():
+	size=224
+	a=np.zeros((size,size,size))
+	height=size
+	radius=44
+	center=112
+	for z in range(size):
+		for y in range(size):
+			for x in range(size):
+				if (x-center)**2+(y-size/2+0.5)**2 < radius**2:
+					a[z][y][x]=1.0
+	a=gaussian_filter(a,sigma=3)
+	a[a>1]=1.0
+	a[a<0]=0.0
+	mrc.write(a,'cylindermask_radius'+str(radius)+'_center'+str(center)+'_size'+str(size)+'.mrc')
 def wedge():
 	size=240
 	angle=160
@@ -24,9 +40,9 @@ def wedge():
 
 
 def sphere():
-	boxsize=240
-	center=180
-	radius=50
+	boxsize=448
+	center=324
+	radius=85
 	a=np.zeros((boxsize,boxsize,boxsize))
 	for z in range(boxsize):
 		for y in range(boxsize):
@@ -52,8 +68,6 @@ def rectangular():
 	a[a>1]=1.0
 	a[a<0]=0.0
 	mrc.write(a,str(boxsize)+'_length'+str(length)+'_h'+str(height)+'.mrc')
-
-
 
 sphere()
 #rectangular()

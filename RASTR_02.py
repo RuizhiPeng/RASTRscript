@@ -410,14 +410,18 @@ if __name__=="__main__":
 
 
 	####subtraction
-	processes=[]
-	for angle in angles:
-		p=Process(target=subtraction,args=(angle,initial_star_in,pad))
-		p.start()
-		processes.append(p)
+	if box_size*(int(pad)+1)*len(angles)>8000:
+		for angle in angles:
+			subtraction(angle,initial_star_in,pad)
+	else:
+		processes=[]
+		for angle in angles:
+			p=Process(target=subtraction,args=(angle,initial_star_in,pad))
+			p.start()
+			processes.append(p)
 
-	for p in processes:
-		p.join()
+		for p in processes:
+			p.join()
 	logging.info('Done with subtraction')
 
 	for angle in angles:
@@ -436,17 +440,21 @@ if __name__=="__main__":
 	inputobj.close()
 	headerdict=mrc.parseHeader(headerbytes)
 
-	boxsize=headerdict['shape'][1]
-
-	for angle in angles:
-		maskprojection[angle]=scratch+'/maskprojection_'+str(angle)
-		mrcs_masked[angle]=mrcs_subtracted[angle]+'_masked.mrcs'
-	for angle in angles:
-		p=Process(target=relionmask,args=(angle,))
-		p.start()
-		processes.append(p)
-	for p in processes:
-		p.join()
+	if box_size*(int(pad)+1)*len(angles)>8000:
+		for angle in angles:
+			maskprojection[angle]=scratch+'/maskprojection_'+str(angle)
+			mrcs_masked[angle]=mrcs_subtracted[angle]+'_masked.mrcs'
+			relionmask(angle)
+	else:
+		for angle in angles:
+			maskprojection[angle]=scratch+'/maskprojection_'+str(angle)
+			mrcs_masked[angle]=mrcs_subtracted[angle]+'_masked.mrcs'
+		for angle in angles:
+			p=Process(target=relionmask,args=(angle,))
+			p.start()
+			processes.append(p)
+		for p in processes:
+			p.join()
 	logging.info('Done with masking')
 	
 
@@ -480,6 +488,11 @@ if __name__=="__main__":
 		opticstart=False
 		particlesstart=False
 		for line in lines:
+			try:
+				if line[0]=='#':
+					continue
+			except:
+				pass
 			words=line.split()
 			if line=='data_optics\n':
 				opticstart=True
