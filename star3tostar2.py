@@ -68,7 +68,7 @@ def write_star2(name,optics,particles):
         elif key=='ImagePixelSize':
             particles.insert(column_count,'_rlnMagnification'+' #%i' %(column_count+1)+'\n')
             particles.insert(column_count+1,'_rlnDetectorPixelSize'+' #%i' %(column_count+2)+'\n')
-
+            column_count+=2
     newlines=[]
     for line in particles:
         if len(line.split())==2:

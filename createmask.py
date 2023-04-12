@@ -5,11 +5,11 @@ import math
 from scipy.ndimage import gaussian_filter
 
 def cylinder():
-	size=224
+	size=608
 	a=np.zeros((size,size,size))
 	height=size
-	radius=44
-	center=112
+	radius=91
+	center=303.5
 	for z in range(size):
 		for y in range(size):
 			for x in range(size):
@@ -40,9 +40,9 @@ def wedge():
 
 
 def sphere():
-	boxsize=448
-	center=324
-	radius=85
+	boxsize=480
+	center=312
+	radius=80
 	a=np.zeros((boxsize,boxsize,boxsize))
 	for z in range(boxsize):
 		for y in range(boxsize):
@@ -52,7 +52,7 @@ def sphere():
 	a=gaussian_filter(a,sigma=3)
 	a[a>1]=1.0
 	a[a<0]=0.0
-	mrc.write(a,str(boxsize)+'_x'+str(center)+'_r'+str(radius)+'.mrc')
+	mrc.write(a,'sphere_'+str(boxsize)+'_x'+str(center)+'_r'+str(radius)+'.mrc')
 
 def rectangular():
 	boxsize=240
@@ -67,7 +67,7 @@ def rectangular():
 	a=gaussian_filter(a,sigma=3)
 	a[a>1]=1.0
 	a[a<0]=0.0
-	mrc.write(a,str(boxsize)+'_length'+str(length)+'_h'+str(height)+'.mrc')
-
+	mrc.write(a,'rectangular_'+str(boxsize)+'_length'+str(length)+'_h'+str(height)+'.mrc')
 sphere()
+#sphere()
 #rectangular()

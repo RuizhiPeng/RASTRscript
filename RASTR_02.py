@@ -195,7 +195,7 @@ def relionmask(angle):
 	### writing the same header
 	outputobj.write(mrc.makeHeaderData(headerdict))
 
-	f=open(initial_star_in,'r')
+	f=open(maskprojection[angle]+'.star','r')
 	lines=f.readlines()
 	f.close()
 	for line in lines:
@@ -301,6 +301,10 @@ def parseOptions():
 	parser.add_argument('-al','--anglelist',type=str,action='store',default='0,90,180,270', dest='anglelist',
 				help=' input list of angles, separate by comma')
 	parser.add_argument('-ma','--mask',type=str,action='store',default=None,dest='mask',help='input mask for refinement, make the region to be kept 1')
+
+
+	parser.add_argument('-sin','--single',action='store_true',default=False,dest='single')
+
 	results = parser.parse_args()
 	
 	#make sure all the required arguments are here
@@ -410,7 +414,7 @@ if __name__=="__main__":
 
 
 	####subtraction
-	if box_size*(int(pad)+1)*len(angles)>8000:
+	if results.single:
 		for angle in angles:
 			subtraction(angle,initial_star_in,pad)
 	else:
@@ -440,7 +444,7 @@ if __name__=="__main__":
 	inputobj.close()
 	headerdict=mrc.parseHeader(headerbytes)
 
-	if box_size*(int(pad)+1)*len(angles)>8000:
+	if results.single:
 		for angle in angles:
 			maskprojection[angle]=scratch+'/maskprojection_'+str(angle)
 			mrcs_masked[angle]=mrcs_subtracted[angle]+'_masked.mrcs'
@@ -507,7 +511,7 @@ if __name__=="__main__":
 				outputstar.write(newline)	
 	outputstar.close()
 	### join stacks together
-	relion_preprocess_run='relion_stack_create --i tmp.star  --o '+output_rootname
+	relion_preprocess_run='relion_stack_create --i tmp.star  --o '+output_rootname + '  --one_by_one'
 	run_command(relion_preprocess_run)
 
 

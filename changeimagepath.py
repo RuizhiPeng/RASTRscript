@@ -27,7 +27,9 @@ for line in lines:
     ### decide if particles part started
 	if line=='data_particles\n':
 		particlesstart=True
+
 	### change first column path name. First column should be image name if csparc2star.py works correctly
+
 	if particlesstart and len(words)>2:
 		if job_prefix[-1]!='/':
 			job_prefix+='/'
@@ -38,11 +40,11 @@ for line in lines:
 			words[0]=job_prefix.join(words[0].split('>'))
 
 		### words[1] should be micrograph names
-		if words[1][-4:]=='.mrc':
-			words[1]=job_prefix.join(words[1].split('>'))+'s'
-		elif words[1][-5:]=='.mrcs':
-			words[1]=job_prefix.join(words[1].split('>'))
-
+#		if words[1][-4:]=='.mrc':
+#			words[1]=job_prefix.join(words[1].split('>'))+'s'
+#		elif words[1][-5:]=='.mrcs':
+#			words[1]=job_prefix.join(words[1].split('>'))
+		words[1]=job_prefix.join(words[1].split('>'))
 		newline=(' ').join(words)+'\n'
 
 		newlines.append(newline)

@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-
+### this scrip is to plot diameter distributions
 import sys
 
 fileobj=sys.argv[1]
@@ -14,6 +14,8 @@ for line in lines:
 	diameters.append(float(words[0]))
 import numpy as np
 diameters=np.array(diameters)
+
+### delete too large and too small diameters
 diameters=np.delete(diameters,np.where(diameters>400))
 #diameters=np.delete(diameters,np.where(diameters<100))
 
@@ -26,7 +28,7 @@ for i in range(len(edges)-1):
 
 from matplotlib import pyplot
 
-
+### bins is changable
 pyplot.hist(diameters,bins=200,normed=0)
 pyplot.xlabel('diameter(A)')
 pyplot.ylabel('number of particles')

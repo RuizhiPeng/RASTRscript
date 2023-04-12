@@ -5,6 +5,10 @@
 
 import sys
 
+print("Please input information in the next line in this order: diameter.txt original.star  output.star diameter_minimum diameter_maximum")
+
+
+
 diameterfile=sys.argv[1]
 starfile=sys.argv[2]
 outputfile=sys.argv[3]
