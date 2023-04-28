@@ -2,18 +2,20 @@
 ### usage ./diameter_classify.py starfile.star
 
 
+import mrcfile
 from datetime import datetime
 import numpy as np
 import math
 import cupy as cp
-from cupy.scipy.ndimage import rotate as cprotate
+from cupyx.scipy.ndimage import rotate as cprotate
+from cupyx.scipy.ndimage import gaussian_filter
 from scipy.ndimage import rotate
 import sys
-from pyami import mrc
 from matplotlib import pyplot
+from matplotlib.gridspec import GridSpec
 import re
 import os
-
+from scipy.signal import find_peaks
 
 
 ### rotate 2d particles with psi angle
@@ -22,23 +24,18 @@ def rotation(image_array,psi):
 		image_array=cprotate(image_array,-psi,axes=(0,1),order=3, mode='constant', reshape=False)
 	### as sicpy rotate will still do calculation even if angle is 0, this will save some time.
 	return image_array
-
+	
 
 ### find the highest two peaks. 
-def find_peak(array_1d):
-	from scipy.signal import find_peaks
-	localhighs=find_peaks(array_1d)[0]
-	peak_1=0
-	peak_2=0
-	for i in localhighs:
-		if array_1d[i]>array_1d[peak_1]:
-			peak_1=i
-	for i in localhighs:
-		### I define two peaks should be separated by at least 20 pixels.
-		if abs(peak_1-i)>20:
-			if array_1d[i]>array_1d[peak_2]:
-				peak_2=i
+def find_peak(array_1d, min_gap=200):
+	localhighs = find_peaks(array_1d)[0]
+	peak_1 = max(localhighs, key=lambda x: array_1d[x])
+	peak_2_candidates = [i for i in localhighs if abs(peak_1 - i) > min_gap]
 
+	if peak_2_candidates:
+		peak_2 = max(peak_2_candidates, key=lambda x: array_1d[x])
+	else:
+		peak_2 = 0
 
 	return peak_1,peak_2
 
@@ -111,7 +108,7 @@ def plot_diameter(diameter_file):
 		for line in lines:
 			diameters.append(float(line))
 	diameters=np.array(diameters)
-	pyplot.hist(diameters,bins=200,normed=0)
+	pyplot.hist(diameters,bins=200)
 	pyplot.xlabel('diameter(A)')
 	pyplot.ylabel('number of particles')
 	pyplot.show()
@@ -155,7 +152,7 @@ def main():
 
 	filelists=os.listdir('.')
 	input_continue=None
-
+	show = True
 	### find previous output diameter files. If exist, ask if use that file directly. 
 	for file in filelists:
 		if re.match( r'%s_(.*)_diameters.txt' %starfile.split('.')[0], file, re.M|re.I):
@@ -179,7 +176,7 @@ def main():
 
 	pixelvalue=get_pixelsize(starfile)
 	if pixelvalue==-1:
-		pixelvalue=float(raw_input('pixel size?: '))
+		pixelvalue=float(input('pixel size?: '))
 
 	psiangles=get_psi(starfile)
 	imagepaths=get_image(starfile)
@@ -190,23 +187,32 @@ def main():
 	diameters=[]
 	for i in range(len(imagepaths)):
 		### read particle array from file imagepaths[i][1], at zslice imagepaths[i][0]
-		image_array=mrc.read(imagepaths[i][1],zslice=imagepaths[i][0])
-		image_array=rotation(image_array,psi=psiangles[i])
+		with mrcfile.mmap(imagepaths[i][1], mode='r') as imagestack:
+			zslice = int( imagepaths[i][0] ) - 1
+			image_array = imagestack.data[zslice]
+			image_array = cp.asarray(image_array)
+			#image_array = gaussian_filter(image_array, 5)
+			image_array = rotation(image_array, psi=psiangles[i])
+
 #		print (image_array.shape)
 		image_1d=cp.sum(image_array,axis=1)
-		image_array_vertical = rotation(image_array.get(), psi=90)
+		image_array_vertical = rotation(image_array, psi=-90)
 		peak_one,peak_two=find_peak(image_1d.get())
-#		print ('peaks: ', peak_one,  peak_two)
+		#print ('peaks: ', peak_one,  peak_two)
 		diameter=abs((peak_one-peak_two)*pixelvalue)
 		diameters.append(diameter)
 
 		#print( 'diameter: ', diameter)
-		#f, img = pyplot.subplots(2)
-		#img[0].imshow(image_array_vertical, aspect='auto')
-		#pyplot.show()
-		#img[1].plot(image_1d)
-		#img[1].set_xlim(0, image_array.shape[1])
-		#pyplot.show()
+		if show:		
+			fig, (ax1, ax2) = pyplot.subplots(2, 1, figsize=(4,6), gridspec_kw={'height_ratios':[2,1]}, layout="constrained")
+			ax1.imshow(image_array_vertical.get(), aspect='equal')
+			ax1.set_box_aspect(1)
+
+			ax2.plot(image_1d.get())
+			ax2.set_xlim(0,image_1d.shape[0]-1)
+			ax2.set_box_aspect(0.5)
+
+			pyplot.show()
 
 	timepoint=datetime.now().strftime('%Y%m%d%H%M%S')
 	diameter_file=starfile.split('.')[0]+'_'+timepoint+'_diameters.txt'
