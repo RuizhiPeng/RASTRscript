@@ -16,7 +16,11 @@ class StarFile:
 		optics_pattern = r'data_optics(.*?)data_particles'
 		particles_pattern = r'data_particles(.*?)$'
 
-		optics_block = re.search(optics_pattern, content, re.DOTALL).group(1).strip()
+		try:
+			optics_block = re.search(optics_pattern, content, re.DOTALL).group(1).strip()
+		except:
+			print("Your star is probably from old version relion, please use relion_star_handler to update")
+			exit()
 		particles_block = re.search(particles_pattern, content, re.DOTALL).group(1).strip()
 
 		optics_header, optics_data = self.extract_header_and_data_block(optics_block)
@@ -41,10 +45,6 @@ class StarFile:
 
 		return df
 
-
-	def modify_angle(self, value):
-		if '_rlnAngleRot' in self.particles_df.columns:
-			self.particles_df['_rlnAngleRot'] += value
 
 	def write(self, output_file_path):
 		with open(output_file_path, 'w') as file:
@@ -73,15 +73,16 @@ class StarFile:
 		return {column: (lambda x: f"{x: >12.6f}" if isinstance(x, float) else f"{x: >12}") for column in self.optics_df.columns}
 
 
+	def set(self, column, value):
+		pass
+
+
+	def new(self, column, value):
+		pass
 if __name__ == '__main__':
 
-# Usage example
 	file_path = 'test.star'  # Replace with your STAR file path
 	star_file = StarFile(file_path)
 
 #	star_file.write( 'test2.star' )
 
-#	print("Optics DataFrame:")
-#	print(star_file.optics_df)
-#	print("\nParticles DataFrame:")
-	print(star_file.particles_df.loc[0,'_rlnAnglePsi'])

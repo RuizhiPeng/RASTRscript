@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+### legacy script, old version cryosparc cannot bin output, so doing this to save hard drive space.
 
 import sys
 import os

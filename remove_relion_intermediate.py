@@ -1,83 +1,53 @@
 #! /usr/bin/env python
-
+# To remove relion jobs' intermediate files, only map end with .mrc(s) will be removed.
+# Rewrite by chatgpt
 import os
 import sys
 
-ifdry=False
-try:
-	ifdry=sys.argv[1]
-	if ifdry=='dry':
-		ifdry=True
-except:
-	pass
-def identify_jobfolder():
-	dir_path=os.getcwd()
-	try:
-		if dir_path.split('/')[-1][:3]=='job':
-			print ('currently in job directory, will remove intermediate results')
-			return True
-		else:
-			print ('not in job directory, will remove intermediates in all subfolders')
-			return False
-	except:
-		pass
-def removefile(filename):
-	if ifdry:
-		pass
-	elif not ifdry:
-		os.remove(filename)
+# Use argparse to handle command line arguments
+import argparse
 
+parser = argparse.ArgumentParser(description="Clean up intermediate files from relion jobs")
+parser.add_argument('--dry', action='store_true', help="Enable dry run (won't actually delete files)")
+args = parser.parse_args()
 
-def getiterations(filelist):
-	iteration=0
-	for i in filelist:
-		try:
-			if int(i.split('_it')[1].split('_')[0])>iteration:
-				iteration=int(i.split('_it')[1].split('_')[0])
-			else:
-				continue
-		except:
-			pass
-	return iteration
-def removejobintermediates(path):
-	print ('  in %s' %path)
-	filelist=os.listdir(path)
-	iteration=getiterations(filelist)
-	print ('    detected %i interations' %iteration)
-	for i in filelist:
-		if i.split('.')[-1]=='mrc' or i.split('.')[-1]=='mrcs':
-			if '_it' in i:
-				if 'it%03i' %iteration not in i:
-					filename=(path+'/'+i).replace('//','/')
-					removefile(filename)
-					print ('      removing %s' %filename)
-	print ('    remove completed')
+def get_all_jobfolders(path):
+    # Recursively find all job folders under the given path
+    for root, dirs, files in os.walk(path):
+        if 'job' in root:
+            yield root
+        for dir in dirs:
+            yield from get_all_jobfolders(os.path.join(root, dir))
 
-def get_all_jobfolders(jobfolders,path):
-	fileobj=os.walk(path)
-	for a,b,c in fileobj:
-		if a=='.':
-			continue
-		if 'job' in a:
-			jobfolders.append(a)
-		if b!=[]:
-			for sb in b:
-				jobfolders=get_all_jobfolders(jobfolders,a+sb)
-	return jobfolders
+def remove_intermediates(path, dry_run=False):
+    # Remove intermediate files from a given directory
+    print(f'  in {path}')
+    files = os.listdir(path)
+    iterations = [int(f.split('_it')[1].split('_')[0]) for f in files if '_it' in f]
+    if not iterations:
+        return
+    max_iteration = max(iterations)
+    print(f'    detected {max_iteration} iterations')
+    for filename in files:
+        if filename.endswith(('.mrc', '.mrcs')) and '_it' in filename and f'it{max_iteration:03}' not in filename:
+            print(f'      removing {os.path.join(path, filename)}')
+            if not dry_run:
+                os.remove(os.path.join(path, filename))
+    print('    remove completed')
 
 def main():
-	if not ifdry:
-		command=input('not in dry mode, print y to continue: ')
-		if command!='y':
-			sys.exit()
-	ifjob=identify_jobfolder()
-	if ifjob:
-		removejobintermediates('.')
-	elif not ifjob:
-		jobfolders=get_all_jobfolders([],'.')
-		print ('  detected %i job folders' %len(jobfolders))
-		for i in jobfolders:
-			removejobintermediates(i)
-if __name__ =='__main__':
-	main()
+    if not args.dry:
+        command = input('Not in dry mode, print y to continue: ')
+        if command.lower() != 'y':
+            sys.exit()
+    if os.getcwd().split('/')[-1].startswith('job'):
+        remove_intermediates('.', args.dry)
+    else:
+        job_folders = list(get_all_jobfolders('.'))
+        print(f'  detected {len(job_folders)} job folders')
+        for job_folder in job_folders:
+            remove_intermediates(job_folder, args.dry)
+
+if __name__ == '__main__':
+    main()
 

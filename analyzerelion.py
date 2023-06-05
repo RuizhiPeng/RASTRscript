@@ -1,45 +1,40 @@
 #! /usr/bin/env python
+
+### Analyse function to show particles, resolution trends among iterations.
+### Usage, cd to the job directory, then ./analyzerelion.py
+
 import os
 from matplotlib import pyplot
 
-
-
 ### get total iterations
-def countits(files):
-	modelfiles=[]
-	itnumber=0
-	for sfile in files:
-		if sfile[-10:]=='model.star':
-			itnumber+=1	
-	return itnumber
+def count_its(files):
+	return sum(1 for file in files if file.endswith('model.star'))
 
 
 ### get information for project
 def initial(files):
-	result={}
+	result = {}
 	for sfile in files:
 		### get into any optimiser file
-		if sfile[-14:]=='optimiser.star':
-			a=open(sfile,'r')
-			lines=a.readlines()
-			a.close()
+		if sfile.endswith('optimiser.star'):
+			with open(sfile,'r') as a:
+				lines = a.readlines()
 			for line in lines:
-				if len(line)>18:
+				if len(line) > 18 and line[:18] == '_rlnOutputRootName':
 					### get output root name for relion project, typically 'run'
-					if line[:18]=='_rlnOutputRootName':
-						name=line.split()[1]
-						result['rootname']=name
-						break
+					name = line.split()[1]
+					result['rootname'] = name
+					break
 			break
-	a=open(name.split('/')[2]+'_it000_model.star','r')
-	lines=a.readlines()
-	a.close()
+	# Name typically looks as Class3D/job001/run
+	with open(name.split('/')[-1] + '_it000_model.star','r') as a:
+		lines = a.readlines()
+
 	### get total classes
 	for line in lines:
-		if len(line)>13:
-			if line[:13]=='_rlnNrClasses':
-				classes=line.split()[1]
-				result['classes']=int(classes)
+		if len(line)>13 and line[:13] == '_rlnNrClasses':
+				classes = line.split()[1]
+				result['class_number'] = int(classes)
 				break
 	return result
 
@@ -47,83 +42,76 @@ def initial(files):
 
 
 ### pyplot show function, show resolution first, then distribution
-def show(itnumber,res=None,percent=None):
+def show(itnumber, res=None, percent=None):
 	for i in res:
-		pyplot.plot(range(itnumber),res[i])
-	pyplot.legend([i for i in res],loc='upper left')
+		pyplot.plot( range(itnumber), res[i] )
+	pyplot.legend([i for i in res], loc='upper left')
 	pyplot.xlabel('iteration')
 	pyplot.ylabel('resolution')
 	pyplot.show()
 	for i in res:
-		pyplot.plot(range(itnumber),percent[i])
-	pyplot.legend([i for i in res],loc='upper left')
+		pyplot.plot( range(itnumber), percent[i] )
+	pyplot.legend( [i for i in res], loc='upper left')
 	pyplot.xlabel('iteration')
 	pyplot.ylabel('distribution')
 	pyplot.show()
-	pass
+
+
 
 ### open it000_model file to get position of resolution and distribution
-def dataposition(filename):
-	a=open(filename,'r')
-	lines=a.readlines()
-	a.close()
-	position={}
+def analyze_position( filename ):
+	with open(filename,'r') as a:
+		lines = a.readlines()
+	position = {}
 	for line in lines:
-		if len(line)>14:
-			if line.split()[0]=='_rlnClassDistribution':
-				position['percent']=int(line.split()[1][1:])-1
-			elif line.split()[0]=='_rlnEstimatedResolution':
-				position['res']=int(line.split()[1][1:])-1
+		if len(line) > 14:
+			if line.split()[0] == '_rlnClassDistribution':
+				position['percent'] = int(line.split()[1][1:])-1
+			elif line.split()[0] == '_rlnEstimatedResolution':
+				position['resolution'] = int(line.split()[1][1:])-1
 			
-			if line=='data_model_class_1\n':
+			if line == 'data_model_class_1\n':
 				break
 	return position
 
 def analyze():
-	files=os.listdir('.')
-	### initialization
-	itnumber=countits(files)
-	initials=initial(files)
-	rootname=initials['rootname']
-	classes=initials['classes']	
+	files = os.listdir('.')
+	itnumber = count_its(files)
+	initials = initial(files)
+	rootname = initials['rootname']
+	classes = initials['class_number']	
 
 	### get a list of strings of classname
-	classname=[]
-	for clas in range(classes):
-		classname.append('class'+str('%03i' %(clas+1)))
-	### create res, percent blank dictionary
-	res={}
-	percent={}
-	for i in classname:
-		res[i]=[]	
-		percent[i]=[]
+	classnames = ['class' + str('%03i' %(i+1)) for i in range(classes)]
+	resolutions = {i: [] for i in classnames}
+	percent = {i: [] for i in classnames}
 	
-	position=dataposition(rootname.split('/')[2]+'_it000_model.star')
-
+	position = analyze_position (rootname.split('/')[2]+'_it000_model.star')
 
 	### append model file stepwise
 	for i in range(itnumber):
-		iteration='it'+str('%03i' %i)
-		a=open(rootname.split('/')[2]+'_'+iteration+'_model.star','r')
-		lines=a.readlines()
-		a.close()
+		iteration = 'it'+str('%03i' %i)
+		with open(rootname.split('/')[2]+'_'+iteration+'_model.star','r') as a:
+			lines = a.readlines()
 		
 		for line in lines:
-			if len(line)>len(rootname):
-				words=line.split()
-				if words[0][:len(rootname)]==rootname:
-					res[words[0][(len(rootname)+7):-4]].append(float(words[position['res']]))
+			if len(line) > len(rootname):
+				words = line.split()
+				if words[0][:len(rootname)] == rootname:
+					resolutions[words[0][(len(rootname)+7):-4]].append(float(words[position['resolution']]))
 					percent[words[0][(len(rootname)+7):-4]].append(float(words[position['percent']]))
-				if line=='data_model_class_1\n':
+				if line == 'data_model_class_1\n':
 					break
-	return itnumber,res,percent
+	return itnumber, resolutions, percent
 
 
 def main():
-	itnumber,res,percent=analyze()
-	show(itnumber,res,percent)
-	pass
+	# Get lists of resolutions, percentages
+	itnumber, res, percent = analyze()
+
+	# Plot
+	show( itnumber, res, percent)
 
 
-
-main()
+if __name__ == '__main__':
+	main()

@@ -1,5 +1,8 @@
 #! /usr/bin/env python
 
+# Usage ./par2star.py xxx.par yyy.star stack.mrcs
+#    or ./par2star.py xxx.par yyy.star stack.star
+
 import sys
 import argparse
 
@@ -14,9 +17,11 @@ def main():
 	### determine what stack path to add.
 	if sys.argv[3]:
 		basefile=sys.argv[3]
+
 	### if input is a stack file, then use it directly
 	if basefile.split('.')[-1][:3]=='mrc':
 		imagepath=basefile
+
 	### if input is a star file, then process the stack filename.
 	star3=False
 	opticlines=[]
@@ -24,7 +29,6 @@ def main():
 		fileobj=open(basefile,'r')
 		lines=fileobj.readlines()
 		fileobj.close()
-
 
 		imagecolumn=None
 		### get image column number

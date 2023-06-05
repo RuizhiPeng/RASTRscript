@@ -1,76 +1,30 @@
-#!/usr/bin/env python
+#! /usr/bin/env python
 
-### usage: ./randomphi.py inputfile
-### inputfile should be .par file
-
-import os
-import sys
 import random
+import sys
 
-def parseFrealignXParamFile(paramfile):
-	"""
-	parse a typical FREALIGN X parameter file 
-	"""
-	if not os.path.isfile(paramfile):
-		print ("Parameter file does not exist: %s"%(paramfile))
+input_file = sys.argv[1]
+output_file = input_file.split('.')[0]+'randomphi.par'
 
-	f = open(paramfile, "r")
-	parttree = []
-	print ("Processing parameter file: %s"%(paramfile))
-	for line in f:
-		sline = line.strip()
-		if sline[0] == "C":
-			### comment line
-			continue
-		words=sline.split()
-		
-		partdict = {
-			'ptclnum': int(words[0]),
-			'psi': float(words[1]),
-			'theta': float(words[2]),
-			'phi': float(words[3]),
-			'shx': float(words[4]),
-			'shy': float(words[5]),
-			'mag': float(words[6]),
-			'include': int(words[7]),
-			'df1': float(words[8]),
-			'df2': float(words[9]),
-			'angast': float(words[10]),
-			'pshift': float(words[11]),
-			'occ': float(words[12]),
-			'logp': int(words[13]),
-			'sigma': float(words[14]),
-			'score': float(words[15]),
-			'change': float(words[16]),
+# Open the original file and a new file to write to
+with open(input_file, 'r') as f, open(output_file, 'w') as out:
+    # Read the first line (header) and write it to the new file
+    header = f.readline()
+    out.write(header)
 
-		}
-		parttree.append(partdict)
-	f.close()
-	if len(parttree) < 2:
-		print ("No particles found in parameter file %s"%(paramfile))
+    # Process the remaining lines
+    for line in f:
+        if line[0] == 'C':
+            out.write(line)
+            continue
+        # Split the line into columns
+        columns = line.split()
 
+        # Replace the PHI value with a random value between 0 and 360
+        columns[3] = "{:.2f}".format(random.uniform(0, 360))
 
-	print ("Processed %d particles"%(len(parttree)))
-	return parttree
-	
-def writeParticleParamLine(particleparams, fileobject):
-	p=particleparams
-	fileobject.write("%7d %7.2f %7.2f %7.2f   %7.2f   %7.2f %7d %5d %8.1f %8.1f %7.2f %7.2f %7.2f %10d %10.4f %7.2f %7.2f\n" 
-		% (p['ptclnum'],p['psi'],p['theta'],p['phi'],p['shx'],p['shy'],p['mag'],
-		p['include'],p['df1'],p['df2'],p['angast'],p['pshift'],p['occ'],p['logp'],p['sigma'],p['score'],p['change']))
+        # Recreate the line with the original spacing
+        new_line = "{:>7}{:>8}{:>8}{:>8}{:>10}{:>10}{:>8}{:>6}{:>9}{:>9}{:>8}{:>8}{:>8}{:>10}{:>11}{:>8}{:>8}\n".format(*columns)
+        # Write the line to the new file
+        out.write(new_line)
 
-
-if __name__=="__main__":
-        inpar=sys.argv[1]
-        outpar=inpar[:-4]+'randomphi.par'
-        ptcllst=parseFrealignXParamFile(inpar)
-        f=open(outpar,'w')
-        thetas=[90,270]
-        for ptcl in ptcllst:
-                ptcl['phi']=float(random.randint(0,360))
-                random.shuffle(thetas)
-                #ptcl['shx']+=10
-                if ptcl['theta']!=90 and ptcl['theta']!=270:
-                        ptcl['theta']=thetas[0]
-                writeParticleParamLine(ptcl,f)
-        f.close()

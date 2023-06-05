@@ -1,42 +1,44 @@
 #! /usr/bin/env python
-from pyami import mrc
+import mrcfile
 import numpy as np
-import math
 from scipy.ndimage import gaussian_filter
 
 def cylinder():
 	size=608
 	a=np.zeros((size,size,size))
-	height=size
 	radius=91
 	center=303.5
-	for z in range(size):
-		for y in range(size):
-			for x in range(size):
-				if (x-center)**2+(y-size/2+0.5)**2 < radius**2:
-					a[z][y][x]=1.0
+
+	x, y, z = np.indices((size, size, size))
+	mask = ((x-center)**2 + (y-size/2+0.5)**2 < radius**2)
+	a[mask] = 1.0
+
 	a=gaussian_filter(a,sigma=3)
-	a[a>1]=1.0
-	a[a<0]=0.0
-	mrc.write(a,'cylindermask_radius'+str(radius)+'_center'+str(center)+'_size'+str(size)+'.mrc')
+	a = np.clip(a, 0, 1)
+	
+	with mrcfile.new('cylindermask_radius{}_center{}_size{}.mrc'.format(radius, center, size)) as mrc:
+		mrc.set_data(a)
+
+
 def wedge():
 	size=240
 	angle=160
 	a=np.zeros((size,size,size))
 	center=size/2-0.5
-	angle_radian=angle*math.pi/360
+	angle_radian=angle*np.pi/360
 	height=168
 	radius=83
-	for z in range(size):
-		for y in range(size):
-			for x in range(size):
-				if z< (size-1+height)/2 and z>(size-1-height)/2  :
-					if (x-center)**2 + (y-center)**2< radius**2:
-						if abs(y-center)<(x-center)*math.tan(angle_radian) and x>center:
-							a[z][y][x]=1.0
 
+	x, y, z = np.indices((size, size, size))
+	mask1 = z < (size-1+height)/2
+	mask2 = z > (size-1-height)/2
+	mask3 = (x-center)**2 + (y-center)**2< radius**2
+	mask4 = np.abs(y-center) < (x-center)*np.tan(angle_radian)
+	mask5 = x > center
+	a[mask1 & mask2 & mask3 & mask4 & mask5] = 1.0
 
-	mrc.write(a,'wedgemask_angle'+str(angle)+'_height'+str(height)+'_radius'+str(radius)+'.mrc')
+	with mrcfile.new('wedgemask_angle{}_height{}_radius{}.mrc'.format(angle, height, radius)) as mrc:
+		mrc.set_data(a)
 
 
 def sphere():
@@ -44,30 +46,38 @@ def sphere():
 	center=312
 	radius=80
 	a=np.zeros((boxsize,boxsize,boxsize))
-	for z in range(boxsize):
-		for y in range(boxsize):
-			for x in range(boxsize):
-				if (x-center)**2+(y-boxsize/2+0.5)**2+(z-boxsize/2+0.5)**2<radius**2:
-					a[z][y][x]=1.0
+
+	x, y, z = np.indices((boxsize, boxsize, boxsize))
+	mask = ((x-center)**2 + (y-boxsize/2+0.5)**2 + (z-boxsize/2+0.5)**2 < radius**2)
+	a[mask] = 1.0
+
 	a=gaussian_filter(a,sigma=3)
-	a[a>1]=1.0
-	a[a<0]=0.0
-	mrc.write(a,'sphere_'+str(boxsize)+'_x'+str(center)+'_r'+str(radius)+'.mrc')
+	a = np.clip(a, 0, 1)
+
+	with mrcfile.new('sphere_{}_x{}_r{}.mrc'.format(boxsize, center, radius)) as mrc:
+		mrc.set_data(a)
+
 
 def rectangular():
 	boxsize=240
 	length=200
 	height=50
 	a=np.zeros((boxsize,boxsize,boxsize))
-	for z in range(boxsize):
-		for y in range(boxsize):
-			for x in range(boxsize):
-				if x<boxsize/2-0.5+length/2 and x>boxsize/2-0.5-length/2 and y<boxsize/2-0.5+length/2 and y>boxsize/2-0.5-length/2 and z<boxsize/2-0.5+height/2 and z>boxsize/2-0.5-height/2:
-					a[z][y][x]=1.0
+
+	x, y, z = np.indices((boxsize, boxsize, boxsize))
+	mask1 = x < boxsize/2-0.5 + length/2
+	mask2 = x > boxsize/2-0.5 - length/2
+	mask3 = y < boxsize/2-0.5 + length/2
+	mask4 = y > boxsize/2-0.5 - length/2
+	mask5 = z < boxsize/2-0.5 + height/2
+	mask6 = z > boxsize/2-0.5 - height/2
+	a[mask1 & mask2 & mask3 & mask4 & mask5 & mask6] = 1.0
+
 	a=gaussian_filter(a,sigma=3)
-	a[a>1]=1.0
-	a[a<0]=0.0
-	mrc.write(a,'rectangular_'+str(boxsize)+'_length'+str(length)+'_h'+str(height)+'.mrc')
+	a = np.clip(a, 0, 1)
+
+	with mrcfile.new('rectangular_{}_length{}_h{}.mrc'.format(boxsize, length, height)) as mrc:
+		mrc.set_data(a)
+
 sphere()
-#sphere()
-#rectangular()
+

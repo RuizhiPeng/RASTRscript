@@ -1,100 +1,60 @@
 #! /usr/bin/env python
-
-#### Ruizhi's personal script
-#### used for 2D image shrink(bin)
-#### usage: ./2Dimagebin.py inputfile binfactor processnumber
-####    eg: ./2Dimagebin.py input.mrcs 2 4
-#### bin by 2, using 4 process
-#### bin factor has to be 2's powerful number 2 4 8 16
-
-import numpy as np
-from pyami import mrc
 import sys
-import copy
-from multiprocessing import Pool, Process
-import time
-import threading
+import numpy as np
+import mrcfile
+from multiprocessing import Pool
 import os
-time1=time.time()
-inv=sys.argv[1]
-binnumber=int(sys.argv[2])
-repeat=int(np.log2(binnumber))
-outputname=inv.split('.')[0]+'bin'+str(binnumber)+'.'+inv.split('.')[1]
-### default process number 1
-try:
-	processnumber=int(sys.argv[3])
-except:
-	processnumber=1
+import time
+def bin2(img):
+	"""Bin an image by a factor of 2."""
+	return img.reshape((img.shape[0]//2, 2, img.shape[1]//2, 2)).mean(axis=(1, 3))
 
-### 2D image bin by 2, input image single slice 2D matrix.
-def slicebin2(vol):
-	y=vol.shape[0]
-	x=vol.shape[1]
-	nvol=vol.reshape(y/2,2,x/2,2)
-	nvol=np.mean(nvol,axis=3)
-	nvol=np.mean(nvol,axis=1)
-        return nvol
+def bin_image(img, factor):
+	"""Bin an image by a specified factor."""
+	for _ in range(int(np.log2(factor))):
+		img = bin2(img)
+	return img
 
-### bin a list of slices in tempinput file object, write to tempfile output object
-### repeat = log2(binfactor)
-def slicesbin(imagelis,tempinput,tempfile):
-	for i in imagelis:
-		singleslice=mrc.readDataFromFile(tempinput,headerdict,zslice=i)
-		for j in range(repeat):
-			newslice=slicebin2(singleslice)
-			singleslice=copy.deepcopy(newslice)
-		mrc.appendArray(newslice,tempfile)	
-	tempfile.close()
-	print "finish"
-if __name__ == '__main__':
-	### initialize headers
-	headerdict=mrc.readHeaderFromFile(inv)
+def bin_images(input_file, start, end, output_file, factor):
+	"""Bin all images in an MRC file by a specified factor."""
+	with mrcfile.mmap(input_file, 'r') as mrc:
+		images = mrc.data[start:end]
+		bin_images = np.empty((images.shape[0], images.shape[1]//factor, images.shape[2]//factor), dtype=images.dtype)
+		for i in range(images.shape[0]):
+			bin_images[i] = bin_image(images[i], factor)
 
-	#print headerdict
-	totalshape=headerdict['shape']
-	boxsize=totalshape[1]
-	### check if image stacks can be binned
-	if boxsize%binnumber!=0:
-		print "binnumber not doable"
-		sys.exit()
-	### this is the final output file
-	start=0
-	step=totalshape[0]/processnumber +1
-	processes=[]
-	inobjs={}
+	with mrcfile.new(output_file, overwrite=True) as mrc:
+		mrc.set_data(bin_images)
 
-	### dividing whole dataset into processnumber parts
-	for i in range(processnumber):
-		end=start+step
-		if end > totalshape[0]:
-			end=totalshape[0]
-		### mrc readDataFromFile use file.seek(), multiprocesses will affect each other
-		### so open multiple input file to avoid
-		inobjs[i]=open(inv,'rb')
-		tempoutputobj=open('tempfile'+str(i),'wb')
-		p=Process(target=slicesbin,args=(range(totalshape[0])[start:end],inobjs[i],tempoutputobj))
-		p.start()
-		processes.append(p)
+def process_chunk(args):
+	"""Process a chunk of images."""
+	input_file, start, end, output_file, factor = args
+	bin_images(input_file, start, end, output_file, factor)
 
-		#print start, end
-		start=end
-	### wait until all processes finish
-	for p in processes:
-		p.join()
-	print "all finish"
-	for i in range(processnumber):
-		inobjs[i].close()
-	### append temp output files 
-	mrcs=np.zeros(0)
-	for i in range(processnumber):
-		tempfile=open('tempfile'+str(i),'rb')
-		tempfile.seek(0)
-		tempmrcs=np.fromfile(tempfile,dtype=headerdict['dtype'],count=-1)
-		mrcs=np.append(mrcs,tempmrcs)
-		tempfile.close()
-		os.remove('tempfile'+str(i))
-	mrcs.shape=(headerdict['shape'][0],headerdict['shape'][1]/binnumber,headerdict['shape'][2]/binnumber)
-	mrc.write(mrcs,outputname)
-time2=time.time()
-print "spend: ", time2-time1, " seconds"
-print "output file as: ", outputname
+def main(input_file, factor, num_processes=2):
+	time_1 = time.time()
+	"""Main function."""
+	factor = int(factor)
+	num_processes = int(num_processes)
+	assert factor & (factor - 1) == 0, "Factor must be a power of 2"
+	output_file = f"{os.path.splitext(input_file)[0]}bin{factor}.mrc"
+	with mrcfile.mmap(input_file, 'r') as mrc:
+		num_images = mrc.data.shape[0]
+	chunk_size = (num_images + num_processes - 1) // num_processes
+	chunks = [(input_file, i*chunk_size, min((i+1)*chunk_size, num_images), f"tempfile{i}.mrc", factor) for i in range(num_processes)]
+	with Pool(num_processes) as pool:
+		pool.map(process_chunk, chunks)
+	with mrcfile.mmap(f"tempfile0.mrc", 'r') as temp_mrc:
+		data = temp_mrc.data
+	for i in range(1,num_processes):
+		with mrcfile.mmap(f"tempfile{i}.mrc", 'r') as temp_mrc:
+			data = np.concatenate((data, temp_mrc.data)) if data is not None else temp_mrc.data
+		os.remove(f"tempfile{i}.mrc")
+	with mrcfile.new(output_file, overwrite=True) as mrc:
+		mrc.set_data(data)
+	os.remove("tempfile0.mrc")
+	time_2 = time.time()
+	print("time spent: ",time_2-time_1," seconds")
+if __name__ == "__main__":
+	main(*sys.argv[1:])
+
